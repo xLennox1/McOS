@@ -30,6 +30,7 @@ export type ModVersion = {
   created_at: string;
   downloads: number;
   premium_only: boolean;
+  published: boolean;
 };
 
 export type Mod = {

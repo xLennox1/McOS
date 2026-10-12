@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     const { data, error } = await admin
       .from("mod_versions")
       .select(
-        "id, mod_id, version, minecraft_version, loaders, changelog, file_size, created_at, downloads, premium_only",
+        "id, mod_id, version, minecraft_version, loaders, changelog, file_size, created_at, downloads, premium_only, published",
       )
       .in(
         "mod_id",

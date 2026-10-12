@@ -254,7 +254,6 @@ export function Desktop({ profile }: { profile: Profile }) {
           <span>Abmelden</span>
         </button>
       </div>
-
       <section className="desktop-icons" aria-label="Anwendungen">
         {availableApps
           .filter((app) => app.id !== "admin")
@@ -629,6 +628,9 @@ function LibraryApp({
     try {
       const result = await requestJson<Mod[]>(`/api/mods?${params}`, { cache: "no-store" });
       setMods(result);
+      setSelected((current) =>
+        current ? (result.find((mod) => mod.id === current.id) ?? null) : current,
+      );
       setError("");
     } catch (reason) {
       setError((reason as Error).message);
@@ -1511,6 +1513,7 @@ function AdminApp({ profile }: { profile: Profile }) {
     loaders: ["Fabric"],
     changelog: "",
     premiumOnly: false,
+    published: true,
   });
   const [jar, setJar] = useState<File | null>(null);
   const [newAssetFile, setNewAssetFile] = useState<File | null>(null);
@@ -1567,8 +1570,15 @@ function AdminApp({ profile }: { profile: Profile }) {
     setError("");
     setMessage("");
     try {
-      await action();
-      setMessage(success);
+      const result = await action();
+      const warning =
+        typeof result === "object" &&
+        result !== null &&
+        "warning" in result &&
+        typeof result.warning === "string"
+          ? ` ${result.warning}`
+          : "";
+      setMessage(`${success}${warning}`);
       await load();
     } catch (reason) {
       setError((reason as Error).message);
@@ -1610,14 +1620,17 @@ function AdminApp({ profile }: { profile: Profile }) {
       await load();
       try {
         const filePath = await uploadAsset(file, created.asset_type);
-        await requestJson(`/api/admin/mods/${created.id}/versions`, {
-          method: "POST",
-          body: JSON.stringify({
-            ...versionData,
-            loaders: created.asset_type === "mod" ? versionData.loaders : [],
-            filePath,
-          }),
-        });
+        const release = await requestJson<{ warning?: string }>(
+          `/api/admin/mods/${created.id}/versions`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              ...versionData,
+              loaders: created.asset_type === "mod" ? versionData.loaders : [],
+              filePath,
+            }),
+          },
+        );
         resetVersionData();
         setJar(null);
         const existingFileInput = document.getElementById(
@@ -1625,15 +1638,15 @@ function AdminApp({ profile }: { profile: Profile }) {
         ) as HTMLInputElement | null;
         if (existingFileInput) existingFileInput.value = "";
         setMessage(
-          created.asset_type === "mod"
-            ? "Mod wurde angelegt und die erste Version veröffentlicht."
-            : "Schematic wurde angelegt und veröffentlicht.",
+          `${created.asset_type === "mod" ? "Mod" : "Schematic"} wurde angelegt und ${
+            versionData.published ? "veröffentlicht" : "als Entwurf gespeichert"
+          }.${release.warning ? ` ${release.warning}` : ""}`,
         );
         window.dispatchEvent(new Event("mcos:mods-updated"));
         await load();
       } catch (reason) {
         setError(
-          `${created.asset_type === "mod" ? "Mod" : "Schematic"} wurde angelegt, aber die Datei konnte nicht veröffentlicht werden: ${(reason as Error).message} Du kannst sie unten unter „Neue Veröffentlichung“ erneut hochladen.`,
+          `${created.asset_type === "mod" ? "Mod" : "Schematic"} wurde angelegt, aber die Datei konnte nicht gespeichert werden: ${(reason as Error).message} Du kannst sie unten unter „Neue Veröffentlichung“ erneut hochladen.`,
         );
       }
     } catch (reason) {
@@ -1649,6 +1662,7 @@ function AdminApp({ profile }: { profile: Profile }) {
       loaders: ["Fabric"],
       changelog: "",
       premiumOnly: false,
+      published: true,
     });
   }
   async function uploadAsset(file: File, assetType: "mod" | "schematic") {
@@ -1691,22 +1705,25 @@ function AdminApp({ profile }: { profile: Profile }) {
     setMessage("");
     try {
       const filePath = await uploadAsset(jar, assetType);
-      await requestJson(`/api/admin/mods/${selectedMod}/versions`, {
-        method: "POST",
-        body: JSON.stringify({
-          ...versionData,
-          loaders: assetType === "mod" ? versionData.loaders : [],
-          filePath,
-        }),
-      });
+      const release = await requestJson<{ warning?: string }>(
+        `/api/admin/mods/${selectedMod}/versions`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ...versionData,
+            loaders: assetType === "mod" ? versionData.loaders : [],
+            filePath,
+          }),
+        },
+      );
       resetVersionData();
       setJar(null);
       const input = document.getElementById("asset-upload") as HTMLInputElement | null;
       if (input) input.value = "";
       setMessage(
-        assetType === "mod"
-          ? "Mod-Version wurde veröffentlicht."
-          : "Schematic wurde veröffentlicht.",
+        `${assetType === "mod" ? "Mod-Version" : "Schematic"} wurde ${
+          versionData.published ? "veröffentlicht" : "als Entwurf gespeichert"
+        }.${release.warning ? ` ${release.warning}` : ""}`,
       );
       window.dispatchEvent(new Event("mcos:mods-updated"));
       await load();
@@ -1887,7 +1904,7 @@ function AdminApp({ profile }: { profile: Profile }) {
             <form className="admin-form admin-create-mod" onSubmit={createMod}>
               <div className="admin-form-title">
                 <Plus size={15} />
-                <strong>Neue Mod oder Schematic veröffentlichen</strong>
+                <strong>1. Neue Mod oder Schematic anlegen</strong>
               </div>
               <div className="admin-form-grid">
                 <label>
@@ -1997,6 +2014,25 @@ function AdminApp({ profile }: { profile: Profile }) {
                   />
                 </label>
                 <fieldset className="release-access wide-field">
+                  <legend>Veröffentlichungsstatus</legend>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={versionData.published}
+                      onChange={(event) =>
+                        setVersionData({ ...versionData, published: event.target.checked })
+                      }
+                    />
+                    Sofort im Browser veröffentlichen
+                  </label>
+                  {!versionData.published && (
+                    <small>
+                      Entwürfe sind für Mitglieder unsichtbar. Du kannst sie nach dem Speichern
+                      unten veröffentlichen.
+                    </small>
+                  )}
+                </fieldset>
+                <fieldset className="release-access wide-field">
                   <legend>Download-Zugriff</legend>
                   <label>
                     <input
@@ -2036,7 +2072,10 @@ function AdminApp({ profile }: { profile: Profile }) {
                 </label>
               </div>
               <button className="admin-action-button" disabled={busy}>
-                Anlegen &amp; Datei veröffentlichen <ArrowRight size={14} />
+                {versionData.published
+                  ? "Anlegen & Datei veröffentlichen"
+                  : "Anlegen & Datei als Entwurf speichern"}{" "}
+                <ArrowRight size={14} />
               </button>
             </form>
             {mods.length === 0 ? (
@@ -2045,7 +2084,7 @@ function AdminApp({ profile }: { profile: Profile }) {
               <div className="admin-mod-list">
                 <div className="admin-form-title">
                   <Blocks size={15} />
-                  <strong>Inhalte beider Bibliotheken verwalten</strong>
+                  <strong>2. Mod- und Schematic-Einträge verwalten</strong>
                 </div>
                 {mods.map((mod) => (
                   <div className="admin-mod-editor" key={mod.id}>
@@ -2054,7 +2093,8 @@ function AdminApp({ profile }: { profile: Profile }) {
                         <strong>{mod.name}</strong>
                         <small>
                           {mod.asset_type === "schematic" ? "Schematic" : "Mod"} ·{" "}
-                          {mod.mod_versions.length} Version(en) ·{" "}
+                          {mod.mod_versions.filter((item) => item.published).length} veröffentlicht
+                          · {mod.mod_versions.filter((item) => !item.published).length} Entwurf ·{" "}
                           {mod.active ? "Aktiv" : "Deaktiviert"}
                         </small>
                       </div>
@@ -2062,6 +2102,44 @@ function AdminApp({ profile }: { profile: Profile }) {
                         Löschen
                       </button>
                     </div>
+                    {mod.mod_versions.map((release) => (
+                      <div className="admin-mod-release-row" key={release.id}>
+                        <span>
+                          <strong>v{release.version}</strong>
+                          <small>
+                            Minecraft {release.minecraft_version} ·{" "}
+                            {release.premium_only ? "PRO" : "Alle"} ·{" "}
+                            {release.published ? "Veröffentlicht" : "Entwurf"}
+                          </small>
+                        </span>
+                        <button
+                          className={
+                            release.published ? "plain-admin-button" : "admin-action-button"
+                          }
+                          disabled={busy}
+                          onClick={() =>
+                            void act(
+                              () =>
+                                requestJson(`/api/admin/mods/${mod.id}/versions`, {
+                                  method: "PATCH",
+                                  body: JSON.stringify({
+                                    versionId: release.id,
+                                    published: !release.published,
+                                  }),
+                                }).then((result) => {
+                                  window.dispatchEvent(new Event("mcos:mods-updated"));
+                                  return result;
+                                }),
+                              release.published
+                                ? "Version wurde aus den Bibliotheken zurückgezogen."
+                                : "Version wurde in den Bibliotheken veröffentlicht.",
+                            )
+                          }
+                        >
+                          {release.published ? "Zurückziehen" : "Veröffentlichen"}
+                        </button>
+                      </div>
+                    ))}
                     <div className="admin-form-grid">
                       <label>
                         Name
@@ -2226,6 +2304,25 @@ function AdminApp({ profile }: { profile: Profile }) {
                     onChange={(e) => setVersionData({ ...versionData, changelog: e.target.value })}
                   />
                 </label>
+                <fieldset className="release-access wide-field">
+                  <legend>Veröffentlichungsstatus</legend>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={versionData.published}
+                      onChange={(event) =>
+                        setVersionData({ ...versionData, published: event.target.checked })
+                      }
+                    />
+                    Sofort im Browser veröffentlichen
+                  </label>
+                  {!versionData.published && (
+                    <small>
+                      Entwürfe sind für Mitglieder unsichtbar. Du kannst sie nach dem Speichern oben
+                      veröffentlichen.
+                    </small>
+                  )}
+                </fieldset>
                 <fieldset className="release-access wide-field">
                   <legend>Download-Zugriff</legend>
                   <label>

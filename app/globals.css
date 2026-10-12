@@ -2198,6 +2198,31 @@ button:disabled {
   color: #7c8a99;
   font-size: 8px;
 }
+.admin-mod-release-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(220, 239, 249, 0.08);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.018);
+}
+.admin-mod-release-row > span {
+  display: grid;
+  gap: 4px;
+}
+.admin-mod-release-row strong {
+  color: #d4dee7;
+  font-size: 9px;
+}
+.admin-mod-release-row small,
+.release-access > small {
+  color: #8795a3;
+  font-size: 8px;
+  line-height: 1.45;
+}
 .danger-text {
   border: 0;
   background: transparent;
