@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requestAdmin } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAssetType } from "@/lib/types";
 
 export async function GET() {
   const profile = await requestAdmin();
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   if (
     name.length < 2 ||
     name.length > 80 ||
-    !["mod", "schematic"].includes(assetType) ||
+    !isAssetType(assetType) ||
     !slug ||
     description.length > 3000 ||
     category.length > 40 ||

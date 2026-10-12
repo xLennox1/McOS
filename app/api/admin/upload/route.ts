@@ -39,16 +39,16 @@ const COVER_TYPES: Record<string, { mime: string; signature: (bytes: Uint8Array)
   },
 };
 
-type AssetType = "mod" | "schematic";
+type AssetType = "mod" | "schematic" | "resourcepack";
 
 function extensionFor(fileName: string) {
   return fileName.split(".").pop()?.toLowerCase() ?? "";
 }
 
 function hasValidSignature(assetType: AssetType, extension: string, bytes: Uint8Array) {
-  if (assetType === "mod") {
+  if (assetType === "mod" || assetType === "resourcepack") {
     return (
-      extension === "jar" &&
+      extension === (assetType === "mod" ? "jar" : "zip") &&
       bytes.length >= 4 &&
       bytes[0] === 0x50 &&
       bytes[1] === 0x4b &&
@@ -63,7 +63,12 @@ function hasValidSignature(assetType: AssetType, extension: string, bytes: Uint8
 }
 
 function validFilePath(filePath: string, assetType: AssetType) {
-  const extension = assetType === "mod" ? "jar" : "(?:schem|schematic|litematic)";
+  const extension =
+    assetType === "mod"
+      ? "jar"
+      : assetType === "resourcepack"
+        ? "zip"
+        : "(?:schem|schematic|litematic)";
   return new RegExp(`^[a-f0-9-]{36}\\.${extension}$`).test(filePath);
 }
 
@@ -96,7 +101,12 @@ async function ensureCoverBucket(admin: ReturnType<typeof createAdminClient>) {
   throw createError;
 }
 
-async function verifyJarArchive(filePath: string, size: number) {
+async function verifyZipArchive(
+  filePath: string,
+  size: number,
+  archiveLabel: string,
+  requirePackMetadata = false,
+) {
   const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!baseUrl || !serviceKey) {
@@ -115,10 +125,16 @@ async function verifyJarArchive(filePath: string, size: number) {
     };
   }
   const bytes = new Uint8Array(await response.arrayBuffer());
-  if (!hasValidSignature("mod", "jar", bytes)) {
+  if (
+    bytes.length < 4 ||
+    bytes[0] !== 0x50 ||
+    bytes[1] !== 0x4b ||
+    ![0x03, 0x05, 0x07].includes(bytes[2]) ||
+    ![0x04, 0x06, 0x08].includes(bytes[3])
+  ) {
     return {
       ok: false as const,
-      error: "Die hochgeladene Datei ist kein ZIP/JAR-Archiv.",
+      error: `Die hochgeladene Datei ist kein gültiges ${archiveLabel}-Archiv.`,
       status: 400,
     };
   }
@@ -130,7 +146,7 @@ async function verifyJarArchive(filePath: string, size: number) {
   if (tailResponse.status !== 206) {
     return {
       ok: false as const,
-      error: "Das ZIP-Archivende konnte nicht sicher geprüft werden.",
+      error: `Das ${archiveLabel}-Archivende konnte nicht sicher geprüft werden.`,
       status: 400,
     };
   }
@@ -150,7 +166,7 @@ async function verifyJarArchive(filePath: string, size: number) {
   if (endRecord < 0 || endRecord + 22 > tail.length) {
     return {
       ok: false as const,
-      error: "Das ZIP/JAR-Archiv ist unvollständig oder beschädigt.",
+      error: `Das ${archiveLabel}-Archiv ist unvollständig oder beschädigt.`,
       status: 400,
     };
   }
@@ -161,9 +177,81 @@ async function verifyJarArchive(filePath: string, size: number) {
   if (entries === 0 || directoryOffset + directorySize > start + endRecord) {
     return {
       ok: false as const,
-      error: "Das Archiv enthält kein gültiges JAR-Dateiverzeichnis.",
+      error: `Das Archiv enthält kein gültiges ${archiveLabel}-Dateiverzeichnis.`,
       status: 400,
     };
+  }
+  if (requirePackMetadata) {
+    const maxDirectorySize = 16 * 1024 * 1024;
+    if (directorySize > maxDirectorySize) {
+      return {
+        ok: false as const,
+        error: "Das Resourcepack enthält zu viele Archiv-Einträge.",
+        status: 400,
+      };
+    }
+    const directoryResponse = await fetch(objectUrl, {
+      headers: {
+        ...headers,
+        Range: `bytes=${directoryOffset}-${directoryOffset + directorySize - 1}`,
+      },
+    });
+    if (directoryResponse.status !== 206) {
+      return {
+        ok: false as const,
+        error: "Das Resourcepack-Dateiverzeichnis konnte nicht sicher geprüft werden.",
+        status: 400,
+      };
+    }
+    const directory = new Uint8Array(await directoryResponse.arrayBuffer());
+    if (directory.length !== directorySize) {
+      return {
+        ok: false as const,
+        error: "Das Resourcepack-Dateiverzeichnis ist unvollständig.",
+        status: 400,
+      };
+    }
+    let offset = 0;
+    let parsedEntries = 0;
+    let hasPackMetadata = false;
+    while (offset < directory.length) {
+      if (
+        offset + 46 > directory.length ||
+        directory[offset] !== 0x50 ||
+        directory[offset + 1] !== 0x4b ||
+        directory[offset + 2] !== 0x01 ||
+        directory[offset + 3] !== 0x02
+      ) {
+        break;
+      }
+      const view = new DataView(directory.buffer, directory.byteOffset + offset);
+      const fileNameLength = view.getUint16(28, true);
+      const extraLength = view.getUint16(30, true);
+      const commentLength = view.getUint16(32, true);
+      const entryLength = 46 + fileNameLength + extraLength + commentLength;
+      if (offset + entryLength > directory.length) {
+        return {
+          ok: false as const,
+          error: "Das Resourcepack-Dateiverzeichnis ist beschädigt.",
+          status: 400,
+        };
+      }
+      const fileName = new TextDecoder().decode(
+        directory.subarray(offset + 46, offset + 46 + fileNameLength),
+      );
+      if (fileName === "pack.mcmeta") hasPackMetadata = true;
+      offset += entryLength;
+      parsedEntries++;
+    }
+    if (parsedEntries !== entries || !hasPackMetadata) {
+      return {
+        ok: false as const,
+        error: hasPackMetadata
+          ? "Das Resourcepack-Dateiverzeichnis ist beschädigt."
+          : "Das ZIP-Archiv enthält keine pack.mcmeta-Datei im Stammverzeichnis.",
+        status: 400,
+      };
+    }
   }
   return { ok: true as const };
 }
@@ -279,17 +367,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, imageUrl: publicUrl.publicUrl });
   }
 
-  if (body?.assetType !== "mod" && body?.assetType !== "schematic") {
+  if (
+    body?.assetType !== "mod" &&
+    body?.assetType !== "schematic" &&
+    body?.assetType !== "resourcepack"
+  ) {
     return NextResponse.json({ error: "Ungültiger Inhaltstyp." }, { status: 400 });
   }
-  const assetType: AssetType = body?.assetType === "schematic" ? "schematic" : "mod";
+  const assetType: AssetType = body.assetType;
 
   if (body?.action === "prepare") {
     const fileName = typeof body.fileName === "string" ? body.fileName : "";
     const extension = extensionFor(fileName);
     const size = Number(body.size);
     const isAllowedExtension =
-      assetType === "mod" ? extension === "jar" : SCHEMATIC_EXTENSIONS.has(extension);
+      assetType === "mod"
+        ? extension === "jar"
+        : assetType === "resourcepack"
+          ? extension === "zip"
+          : SCHEMATIC_EXTENSIONS.has(extension);
     if (
       !/^[^\\/]+$/.test(fileName) ||
       !isAllowedExtension ||
@@ -302,7 +398,9 @@ export async function POST(request: Request) {
           error:
             assetType === "mod"
               ? "Nur JAR-Dateien zwischen 4 Byte und 250 MB sind erlaubt."
-              : "Nur SCHEM-, SCHEMATIC- oder LITEMATIC-Dateien zwischen 4 Byte und 250 MB sind erlaubt.",
+              : assetType === "resourcepack"
+                ? "Nur ZIP-Dateien zwischen 4 Byte und 250 MB sind erlaubt."
+                : "Nur SCHEM-, SCHEMATIC- oder LITEMATIC-Dateien zwischen 4 Byte und 250 MB sind erlaubt.",
         },
         { status: 400 },
       );
@@ -317,7 +415,9 @@ export async function POST(request: Request) {
           error:
             assetType === "mod"
               ? "Die Datei besitzt keine erkennbare ZIP/JAR-Signatur."
-              : "Die Datei besitzt keine erkennbare NBT- oder GZIP-Signatur.",
+              : assetType === "resourcepack"
+                ? "Die Datei besitzt keine erkennbare ZIP-Signatur."
+                : "Die Datei besitzt keine erkennbare NBT- oder GZIP-Signatur.",
         },
         { status: 400 },
       );
@@ -354,8 +454,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (assetType === "mod") {
-      const archive = await verifyJarArchive(filePath, size);
+    if (assetType === "mod" || assetType === "resourcepack") {
+      const archive = await verifyZipArchive(
+        filePath,
+        size,
+        assetType === "mod" ? "JAR/ZIP" : "Resourcepack-ZIP",
+        assetType === "resourcepack",
+      );
       if (!archive.ok)
         return NextResponse.json({ error: archive.error }, { status: archive.status });
     } else {

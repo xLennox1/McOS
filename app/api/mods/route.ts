@@ -10,7 +10,9 @@ export async function GET(request: Request) {
   const loader = searchParams.get("loader")?.trim().slice(0, 30) ?? "";
   const gameVersion = searchParams.get("version")?.trim().slice(0, 30) ?? "";
   const category = searchParams.get("category")?.trim().slice(0, 40) ?? "";
-  const assetType = searchParams.get("type") === "schematic" ? "schematic" : "mod";
+  const requestedType = searchParams.get("type");
+  const assetType =
+    requestedType === "schematic" || requestedType === "resourcepack" ? requestedType : "mod";
   const admin = createAdminClient();
 
   const mods = [];
@@ -27,7 +29,7 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     if (error)
       return NextResponse.json(
-        { error: "Die Mod-Bibliothek konnte nicht geladen werden." },
+        { error: "Die Bibliothek konnte nicht geladen werden." },
         { status: 500 },
       );
     mods.push(...(data ?? []));

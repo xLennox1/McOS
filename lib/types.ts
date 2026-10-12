@@ -33,12 +33,18 @@ export type ModVersion = {
   published: boolean;
 };
 
+export type AssetType = "mod" | "schematic" | "resourcepack";
+
+export function isAssetType(value: unknown): value is AssetType {
+  return value === "mod" || value === "schematic" || value === "resourcepack";
+}
+
 export type Mod = {
   id: string;
   name: string;
   slug: string;
   description: string;
-  asset_type: "mod" | "schematic";
+  asset_type: AssetType;
   category: string;
   image_url: string | null;
   active: boolean;

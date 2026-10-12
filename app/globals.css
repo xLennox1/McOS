@@ -493,6 +493,8 @@ button:disabled {
   top: 74px;
   left: 29px;
   display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(6, 78px);
   gap: 13px;
 }
 .desktop-icon {

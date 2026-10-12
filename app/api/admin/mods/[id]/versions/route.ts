@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requestAdmin } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { type AssetType, isAssetType } from "@/lib/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,6 +16,7 @@ export async function POST(request: Request, context: RouteContext) {
   const filePath = typeof body?.filePath === "string" ? body.filePath : "";
   const isSchematicPath = /^[a-f0-9-]{36}\.(schem|schematic|litematic)$/.test(filePath);
   const isModPath = /^[a-f0-9-]{36}\.jar$/.test(filePath);
+  const isResourcepackPath = /^[a-f0-9-]{36}\.zip$/.test(filePath);
   const loaders = Array.isArray(body?.loaders) ? body.loaders : [];
   const changelog = typeof body?.changelog === "string" ? body.changelog.trim() : "";
   const premiumOnly = body?.premiumOnly === true;
@@ -22,9 +24,9 @@ export async function POST(request: Request, context: RouteContext) {
   if (
     !/^[0-9A-Za-z.+_-]{1,32}$/.test(version) ||
     !/^[0-9A-Za-z.+_-]{1,32}$/.test(minecraftVersion) ||
-    !(isModPath || isSchematicPath) ||
+    !(isModPath || isSchematicPath || isResourcepackPath) ||
     (isModPath && (!loaders.length || loaders.length > 3)) ||
-    (isSchematicPath && loaders.length > 0) ||
+    (!isModPath && loaders.length > 0) ||
     !loaders.every((loader: unknown) =>
       ["Fabric", "Forge", "NeoForge", "Quilt"].includes(String(loader)),
     ) ||
@@ -39,9 +41,11 @@ export async function POST(request: Request, context: RouteContext) {
     .eq("id", id)
     .maybeSingle();
   if (modError)
-    return NextResponse.json({ error: "Mod konnte nicht geprüft werden." }, { status: 500 });
+    return NextResponse.json({ error: "Eintrag konnte nicht geprüft werden." }, { status: 500 });
   if (!existing)
     return NextResponse.json({ error: "Eintrag wurde nicht gefunden." }, { status: 404 });
+  if (!isAssetType(existing.asset_type))
+    return NextResponse.json({ error: "Der Eintragstyp ist ungültig." }, { status: 500 });
   if (published && !existing.active) {
     return NextResponse.json(
       {
@@ -52,7 +56,8 @@ export async function POST(request: Request, context: RouteContext) {
   }
   if (
     (existing.asset_type === "schematic" && !isSchematicPath) ||
-    (existing.asset_type === "mod" && !isModPath)
+    (existing.asset_type === "mod" && !isModPath) ||
+    (existing.asset_type === "resourcepack" && !isResourcepackPath)
   )
     return NextResponse.json(
       { error: "Der Dateityp passt nicht zum Inhaltstyp." },
@@ -154,6 +159,8 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!version)
     return NextResponse.json({ error: "Version wurde nicht gefunden." }, { status: 404 });
   const mod = Array.isArray(version.mods) ? version.mods[0] : version.mods;
+  if (!isAssetType(mod.asset_type))
+    return NextResponse.json({ error: "Der Eintragstyp ist ungültig." }, { status: 500 });
   if (body.published && !mod.active) {
     return NextResponse.json(
       {
@@ -208,7 +215,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 async function notifyPublication(
   admin: ReturnType<typeof createAdminClient>,
   modName: string,
-  assetType: "mod" | "schematic",
+  assetType: AssetType,
   version: string,
   minecraftVersion: string,
   changelog: string,
@@ -225,13 +232,18 @@ async function notifyPublication(
     profiles.map((recipient) => ({
       recipient_id: recipient.id,
       sender_name: "MC OS",
-      subject: `${assetType === "mod" ? "Neue Mod-Version" : "Neue Schematic"}: ${modName}`.slice(
-        0,
-        160,
-      ),
+      subject:
+        `${assetType === "mod" ? "Neue Mod-Version" : assetType === "resourcepack" ? "Neues Resourcepack" : "Neue Schematic"}: ${modName}`.slice(
+          0,
+          160,
+        ),
       body: (
-        `${assetType === "mod" ? "Die Mod-Version" : "Die Schematic"} ${version} für Minecraft ${minecraftVersion} ist jetzt in der ${
-          assetType === "mod" ? "Mod-Bibliothek" : "Schematic-Bibliothek"
+        `${assetType === "mod" ? "Die Mod-Version" : assetType === "resourcepack" ? "Das Resourcepack" : "Die Schematic"} ${version} für Minecraft ${minecraftVersion} ist jetzt im ${
+          assetType === "mod"
+            ? "Mod-Browser"
+            : assetType === "resourcepack"
+              ? "Resourcepack-Browser"
+              : "Schematic-Browser"
         } verfügbar.` +
         (premiumOnly ? " Diese Version ist exklusiv für PRO-Mitglieder." : "") +
         (changelog ? `\n\nÄnderungsprotokoll:\n${changelog}` : "")

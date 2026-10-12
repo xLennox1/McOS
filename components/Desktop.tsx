@@ -20,6 +20,7 @@ import {
   MessageCircle,
   Minus,
   Monitor,
+  PackageOpen,
   Plus,
   Search,
   Settings2,
@@ -34,11 +35,19 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useSta
 import { createPortal } from "react-dom";
 import { AdminBroadcastApp, ChatApp, MailApp } from "@/components/CommunityApps";
 import { createClient } from "@/lib/supabase/client";
-import { type Invite, isStaffRole, type Mod, type Profile } from "@/lib/types";
+import {
+  type AssetType,
+  type Invite,
+  isAssetType,
+  isStaffRole,
+  type Mod,
+  type Profile,
+} from "@/lib/types";
 
 type AppId =
   | "library"
   | "schematics"
+  | "resourcepacks"
   | "profile"
   | "downloads"
   | "settings"
@@ -60,6 +69,10 @@ const accentColor: Record<string, string> = {
   emerald: "#68e1a5",
   rose: "#ff8dab",
 };
+function assetTypeLabel(assetType: AssetType) {
+  return assetType === "mod" ? "Mod" : assetType === "schematic" ? "Schematic" : "Resourcepack";
+}
+
 const apps: { id: AppId; title: string; subtitle: string; icon: typeof Gamepad2; color: string }[] =
   [
     {
@@ -77,6 +90,13 @@ const apps: { id: AppId; title: string; subtitle: string; icon: typeof Gamepad2;
       color: "#84baff",
     },
     {
+      id: "resourcepacks",
+      title: "Resourcepacks",
+      subtitle: "Texturen und Sounds für Minecraft",
+      icon: PackageOpen,
+      color: "#e5b5ff",
+    },
+    {
       id: "profile",
       title: "Mein Profil",
       subtitle: "Dein persönlicher Bereich",
@@ -86,7 +106,7 @@ const apps: { id: AppId; title: string; subtitle: string; icon: typeof Gamepad2;
     {
       id: "downloads",
       title: "Downloads",
-      subtitle: "Deine zuletzt geladenen Mods",
+      subtitle: "Deine zuletzt geladenen Dateien",
       icon: HardDriveDownload,
       color: "#78e5b0",
     },
@@ -294,7 +314,7 @@ export function Desktop({ profile }: { profile: Profile }) {
         </h1>
         <p>
           Hallo, {profile.username}. Entdecke Mods, die deine nächste Minecraft-Welt besonders
-          machen, und öffne die Schematic-Bibliothek für Baupläne.
+          machen, erkunde Baupläne und entdecke Resourcepacks für deinen eigenen Minecraft-Look.
         </p>
         <button className="welcome-link" onClick={() => openApp("library")}>
           Bibliothek öffnen <ArrowRight size={14} />
@@ -328,7 +348,9 @@ export function Desktop({ profile }: { profile: Profile }) {
                   <app.icon size={15} />
                 </span>
                 <span className="window-title">{app.title}</span>
-                {(item.id === "library" || item.id === "schematics") && (
+                {(item.id === "library" ||
+                  item.id === "schematics" ||
+                  item.id === "resourcepacks") && (
                   <span className="window-title-hint">MC OS / LIBRARY</span>
                 )}
                 <div className="window-controls">
@@ -356,6 +378,9 @@ export function Desktop({ profile }: { profile: Profile }) {
               <div className="window-body">
                 {item.id === "library" && <LibraryApp profile={profile} assetType="mod" />}
                 {item.id === "schematics" && <LibraryApp profile={profile} assetType="schematic" />}
+                {item.id === "resourcepacks" && (
+                  <LibraryApp profile={profile} assetType="resourcepack" />
+                )}
                 {item.id === "profile" && <ProfileApp profile={profile} />}
                 {item.id === "downloads" && <DownloadsApp />}
                 {item.id === "settings" && <SettingsApp profile={profile} />}
@@ -386,8 +411,8 @@ export function Desktop({ profile }: { profile: Profile }) {
           <div className="pro-library-copy">
             <strong>Mehr mit MC OS PRO</strong>
             <p>
-              Entdecke PRO-exklusive Mods und Schematics. Sieh sie dir schon jetzt in den
-              Bibliotheken an und lass dich zum Zugang beraten.
+              Entdecke PRO-exklusive Mods, Schematics und Resourcepacks. Sieh sie dir schon jetzt in
+              den Bibliotheken an und lass dich zum Zugang beraten.
             </p>
           </div>
           <div className="pro-library-actions">
@@ -544,6 +569,13 @@ export function Desktop({ profile }: { profile: Profile }) {
         >
           <FileArchive size={18} />
         </button>
+        <button
+          className="taskbar-pinned"
+          onClick={() => openApp("resourcepacks")}
+          aria-label="Resourcepacks"
+        >
+          <PackageOpen size={18} />
+        </button>
         <div className="taskbar-running">
           {windows.map((item) => {
             const app = apps.find((entry) => entry.id === item.id);
@@ -627,7 +659,12 @@ function AppHeading({
   );
 }
 
-function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod" | "schematic" }) {
+function LibraryApp({ profile, assetType }: { profile: Profile; assetType: AssetType }) {
+  const isMod = assetType === "mod";
+  const isSchematic = assetType === "schematic";
+  const title = isMod ? "Mod-Bibliothek" : isSchematic ? "Schematics" : "Resourcepacks";
+  const plural = isMod ? "MODS" : isSchematic ? "SCHEMATICS" : "RESOURCEPACKS";
+  const itemTypeLabel = isMod ? "Mod" : isSchematic ? "Schematic" : "Resourcepack";
   const [mods, setMods] = useState<Mod[]>([]);
   const [search, setSearch] = useState("");
   const [loader, setLoader] = useState("");
@@ -712,17 +749,25 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
   return (
     <div className="app-content">
       <AppHeading
-        eyebrow="DEINE MODS"
-        title={assetType === "mod" ? "Mod-Bibliothek" : "Schematics"}
+        eyebrow={`DEINE ${plural}`}
+        title={title}
         subtitle={
-          assetType === "mod"
+          isMod
             ? "Durchsuche handverlesene Mods für deine nächste Minecraft-Welt."
-            : "Entdecke veröffentlichte Baupläne und Weltvorlagen."
+            : isSchematic
+              ? "Entdecke veröffentlichte Baupläne und Weltvorlagen."
+              : "Entdecke Resourcepacks und passe Texturen und Klänge deiner Minecraft-Welt an."
         }
         trailing={
           <div className="library-count">
-            {assetType === "mod" ? <Blocks size={15} /> : <FileArchive size={15} />}{" "}
-            {visibleMods.length} {assetType === "mod" ? "MODS" : "SCHEMATICS"}
+            {isMod ? (
+              <Blocks size={15} />
+            ) : isSchematic ? (
+              <FileArchive size={15} />
+            ) : (
+              <PackageOpen size={15} />
+            )}{" "}
+            {visibleMods.length} {plural}
           </div>
         }
       />
@@ -732,7 +777,7 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={assetType === "mod" ? "Mods durchsuchen" : "Schematics durchsuchen"}
+            placeholder={`${itemTypeLabel}s durchsuchen`}
           />
         </label>
         <select
@@ -745,7 +790,7 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
             <option key={item}>{item}</option>
           ))}
         </select>
-        {assetType === "mod" && (
+        {isMod && (
           <select
             value={loader}
             onChange={(event) => setLoader(event.target.value)}
@@ -775,20 +820,32 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
       )}
       {visibleMods.length === 0 ? (
         <div className="empty-state">
-          <span>{assetType === "mod" ? <Blocks size={25} /> : <FileArchive size={25} />}</span>
+          <span>
+            {isMod ? (
+              <Blocks size={25} />
+            ) : isSchematic ? (
+              <FileArchive size={25} />
+            ) : (
+              <PackageOpen size={25} />
+            )}
+          </span>
           <h3>
             {mods.length === 0
-              ? assetType === "mod"
+              ? isMod
                 ? "Noch keine Mods hier."
-                : "Noch keine Schematics hier."
+                : isSchematic
+                  ? "Noch keine Schematics hier."
+                  : "Noch keine Resourcepacks hier."
               : "Keine passenden Einträge gefunden."}
           </h3>
           <p>
             {mods.length === 0
-              ? assetType === "mod"
+              ? isMod
                 ? "Sobald der Admin Mods veröffentlicht, findest du sie in deiner Bibliothek."
-                : "Sobald der Admin Schematics veröffentlicht, erscheinen sie hier."
-              : "Ändere deine Suche oder Filter, um weitere Mods zu sehen."}
+                : isSchematic
+                  ? "Sobald der Admin Schematics veröffentlicht, erscheinen sie hier."
+                  : "Sobald Resourcepacks veröffentlicht sind, erscheinen sie hier."
+              : "Ändere deine Suche oder Filter, um weitere Einträge zu sehen."}
           </p>
         </div>
       ) : (
@@ -807,7 +864,13 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
                     />
                   ) : (
                     <div className="mod-art-glow">
-                      {assetType === "mod" ? <Blocks size={28} /> : <FileArchive size={28} />}
+                      {isMod ? (
+                        <Blocks size={28} />
+                      ) : isSchematic ? (
+                        <FileArchive size={28} />
+                      ) : (
+                        <PackageOpen size={28} />
+                      )}
                     </div>
                   )}
                   <span className="mod-category">{mod.category}</span>
@@ -829,9 +892,11 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
                     <span>
                       {mod.mod_versions.length === 0
                         ? "Noch nicht veröffentlicht"
-                        : assetType === "mod"
+                        : isMod
                           ? (mod.mod_versions[0]?.loaders?.join(" · ") ?? "—")
-                          : "Schematics-Datei"}
+                          : isSchematic
+                            ? "Schematics-Datei"
+                            : "Resourcepack-Datei"}
                     </span>
                   </div>
                 </div>
@@ -871,7 +936,9 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
               <span className="app-eyebrow">
                 {selected.asset_type === "schematic"
                   ? "SCHEMATIC"
-                  : selected.category.toUpperCase()}{" "}
+                  : selected.asset_type === "resourcepack"
+                    ? "RESOURCEPACK"
+                    : selected.category.toUpperCase()}{" "}
                 / MC OS
               </span>
               <h2>{selected.name}</h2>
@@ -1325,7 +1392,8 @@ function AboutApp() {
       </div>
       <p className="about-copy">
         <strong>
-          MC OS ist eine private, browserbasierte Plattform für Minecraft-Mods und Schematics.
+          MC OS ist eine private, browserbasierte Plattform für Minecraft-Mods, Schematics und
+          Resourcepacks.
         </strong>{" "}
         Der Windows-inspirierte Desktop ist die Benutzeroberfläche einer Website: MC OS ist weder
         ein echtes Betriebssystem noch ein Minecraft-Launcher und installiert keine Dateien
@@ -1346,6 +1414,15 @@ function AboutApp() {
           <span>
             <strong>Schematic-Bibliothek</strong>
             <small>Baupläne entdecken und unterstützte Dateien herunterladen.</small>
+          </span>
+        </div>
+        <div>
+          <PackageOpen size={18} />
+          <span>
+            <strong>Resourcepack-Browser</strong>
+            <small>
+              Resourcepacks entdecken, nach Minecraft-Version filtern und ZIP-Dateien laden.
+            </small>
           </span>
         </div>
         <div>
@@ -1438,11 +1515,11 @@ function AboutApp() {
         <div>
           <h4>Veröffentlichungen und Dateisicherheit</h4>
           <p>
-            Nur Owner und Co-Owner können Mods, Schematics und neue Versionen veröffentlichen.
-            Dateien werden in privatem Speicher abgelegt und vor der Freigabe auf grundlegende
-            Dateiformat-Merkmale geprüft. Das ersetzt keine vollständige Malware-Prüfung. Prüfe
-            heruntergeladene Dateien verantwortungsvoll und verwende sie nur mit passenden
-            Minecraft-Versionen und Loadern.
+            Nur Owner und Co-Owner können Mods, Schematics, Resourcepacks und neue Versionen
+            veröffentlichen. Dateien werden in privatem Speicher abgelegt und vor der Freigabe auf
+            grundlegende Dateiformat-Merkmale geprüft. Das ersetzt keine vollständige
+            Malware-Prüfung. Prüfe heruntergeladene Dateien verantwortungsvoll und verwende sie nur
+            mit passenden Minecraft-Versionen und Loadern.
           </p>
         </div>
       </section>
@@ -1498,7 +1575,7 @@ function AdminApp({ profile }: { profile: Profile }) {
     description: "",
     category: "Utility",
     imageUrl: "",
-    assetType: "mod" as "mod" | "schematic",
+    assetType: "mod" as AssetType,
   });
   const [versionData, setVersionData] = useState({
     version: "",
@@ -1587,7 +1664,9 @@ function AdminApp({ profile }: { profile: Profile }) {
       setError(
         newMod.assetType === "mod"
           ? "Wähle eine JAR-Datei für die erste Veröffentlichung aus."
-          : "Wähle eine Schematic-Datei für die erste Veröffentlichung aus.",
+          : newMod.assetType === "resourcepack"
+            ? "Wähle eine ZIP-Datei für die erste Veröffentlichung aus."
+            : "Wähle eine Schematic-Datei für die erste Veröffentlichung aus.",
       );
       return;
     }
@@ -1637,7 +1716,7 @@ function AdminApp({ profile }: { profile: Profile }) {
         ) as HTMLInputElement | null;
         if (existingFileInput) existingFileInput.value = "";
         setMessage(
-          `${created.asset_type === "mod" ? "Mod" : "Schematic"} wurde angelegt und ${
+          `${assetTypeLabel(created.asset_type)} wurde angelegt und ${
             release.published ? "veröffentlicht" : "als Entwurf gespeichert"
           }.${release.warning ? ` ${release.warning}` : ""}`,
         );
@@ -1645,7 +1724,7 @@ function AdminApp({ profile }: { profile: Profile }) {
         await load();
       } catch (reason) {
         setError(
-          `${created.asset_type === "mod" ? "Mod" : "Schematic"} wurde angelegt, aber die Datei konnte nicht gespeichert werden: ${(reason as Error).message} Du kannst sie unten unter „Neue Veröffentlichung“ erneut hochladen.`,
+          `${assetTypeLabel(created.asset_type)} wurde angelegt, aber die Datei konnte nicht gespeichert werden: ${(reason as Error).message} Du kannst sie unten unter „Neue Veröffentlichung“ erneut hochladen.`,
         );
       }
     } catch (reason) {
@@ -1664,7 +1743,7 @@ function AdminApp({ profile }: { profile: Profile }) {
       published: true,
     });
   }
-  async function uploadAsset(file: File, assetType: "mod" | "schematic") {
+  async function uploadAsset(file: File, assetType: AssetType) {
     const headerBuffer = await file.slice(0, 8).arrayBuffer();
     const header = Array.from(new Uint8Array(headerBuffer), (byte) =>
       byte.toString(16).padStart(2, "0"),
@@ -1682,7 +1761,12 @@ function AdminApp({ profile }: { profile: Profile }) {
     const { error: uploadError } = await createClient()
       .storage.from("mod-files")
       .uploadToSignedUrl(upload.path, upload.token, file, {
-        contentType: assetType === "mod" ? "application/java-archive" : "application/octet-stream",
+        contentType:
+          assetType === "mod"
+            ? "application/java-archive"
+            : assetType === "resourcepack"
+              ? "application/zip"
+              : "application/octet-stream",
         upsert: false,
       });
     if (uploadError) throw new Error(`Datei-Upload fehlgeschlagen: ${uploadError.message}`);
@@ -1750,7 +1834,7 @@ function AdminApp({ profile }: { profile: Profile }) {
       const input = document.getElementById("asset-upload") as HTMLInputElement | null;
       if (input) input.value = "";
       setMessage(
-        `${assetType === "mod" ? "Mod-Version" : "Schematic"} wurde ${
+        `${assetType === "mod" ? "Mod-Version" : assetType === "resourcepack" ? "Resourcepack" : "Schematic"} wurde ${
           release.published ? "veröffentlicht" : "als Entwurf gespeichert"
         }.${release.warning ? ` ${release.warning}` : ""}`,
       );
@@ -1857,7 +1941,7 @@ function AdminApp({ profile }: { profile: Profile }) {
     if (confirm(`„${mod.name}“ und alle zugehörigen Dateien endgültig löschen?`)) {
       await act(
         () => requestJson(`/api/admin/mods/${mod.id}`, { method: "DELETE" }),
-        "Mod und Mod-Dateien gelöscht.",
+        "Eintrag und Dateien gelöscht.",
       );
     }
   }
@@ -1944,7 +2028,7 @@ function AdminApp({ profile }: { profile: Profile }) {
             <form className="admin-form admin-create-mod" onSubmit={createMod}>
               <div className="admin-form-title">
                 <Plus size={15} />
-                <strong>1. Neue Mod oder Schematic anlegen</strong>
+                <strong>1. Mod, Schematic oder Resourcepack anlegen</strong>
               </div>
               <div className="admin-form-grid">
                 <label>
@@ -1952,7 +2036,8 @@ function AdminApp({ profile }: { profile: Profile }) {
                   <select
                     value={newMod.assetType}
                     onChange={(event) => {
-                      const assetType = event.target.value as "mod" | "schematic";
+                      if (!isAssetType(event.target.value)) return;
+                      const assetType = event.target.value;
                       setNewMod({ ...newMod, assetType });
                       setNewAssetFile(null);
                       const input = document.getElementById(
@@ -1967,6 +2052,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                   >
                     <option value="mod">Minecraft-Mod (.jar)</option>
                     <option value="schematic">Schematic (.schem, .schematic, .litematic)</option>
+                    <option value="resourcepack">Resourcepack (.zip)</option>
                   </select>
                 </label>
                 <label>
@@ -2017,7 +2103,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                   />
                 </label>
                 <label>
-                  {newMod.assetType === "mod" ? "Mod-Version" : "Revision"}
+                  {newMod.assetType === "schematic" ? "Revision" : "Version"}
                   <input
                     value={versionData.version}
                     onChange={(event) =>
@@ -2106,7 +2192,11 @@ function AdminApp({ profile }: { profile: Profile }) {
                 </fieldset>
                 <label className="wide-field jar-picker">
                   <span>
-                    {newMod.assetType === "mod" ? "JAR-Datei" : "Schematic-Datei"}{" "}
+                    {newMod.assetType === "mod"
+                      ? "JAR-Datei"
+                      : newMod.assetType === "resourcepack"
+                        ? "Resourcepack-ZIP"
+                        : "Schematic-Datei"}{" "}
                     <small>MAX. 250 MB · PRIVATER STORAGE</small>
                   </span>
                   <input
@@ -2115,7 +2205,9 @@ function AdminApp({ profile }: { profile: Profile }) {
                     accept={
                       newMod.assetType === "mod"
                         ? ".jar,application/java-archive"
-                        : ".schem,.schematic,.litematic,application/octet-stream,application/gzip"
+                        : newMod.assetType === "resourcepack"
+                          ? ".zip,application/zip"
+                          : ".schem,.schematic,.litematic,application/octet-stream,application/gzip"
                     }
                     onChange={(event) => setNewAssetFile(event.target.files?.[0] ?? null)}
                     required
@@ -2143,7 +2235,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                       <div>
                         <strong>{mod.name}</strong>
                         <small>
-                          {mod.asset_type === "schematic" ? "Schematic" : "Mod"} ·{" "}
+                          {assetTypeLabel(mod.asset_type)} ·{" "}
                           {mod.mod_versions.filter((item) => item.published).length} veröffentlicht
                           · {mod.mod_versions.filter((item) => !item.published).length} Entwurf ·{" "}
                           {mod.active ? "Aktiv" : "Deaktiviert"}
@@ -2297,13 +2389,18 @@ function AdminApp({ profile }: { profile: Profile }) {
               <div className="admin-form-title">
                 <ArrowDownToLine size={15} />
                 <strong>
-                  Neue {currentMod?.asset_type === "schematic" ? "Schematic" : "Mod-Version"}{" "}
+                  Neue{" "}
+                  {currentMod?.asset_type === "schematic"
+                    ? "Schematic"
+                    : currentMod?.asset_type === "resourcepack"
+                      ? "Resourcepack-Version"
+                      : "Mod-Version"}{" "}
                   veröffentlichen
                 </strong>
               </div>
               <div className="admin-form-grid">
                 <label className="wide-field">
-                  Mod oder Schematic
+                  Mod, Schematic oder Resourcepack
                   <select
                     value={selectedMod}
                     onChange={(event) => {
@@ -2313,7 +2410,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                       setJar(null);
                       setVersionData({
                         ...versionData,
-                        loaders: nextMod?.asset_type === "schematic" ? [] : ["Fabric"],
+                        loaders: nextMod?.asset_type === "mod" ? ["Fabric"] : [],
                       });
                       const input = document.getElementById(
                         "asset-upload",
@@ -2322,17 +2419,16 @@ function AdminApp({ profile }: { profile: Profile }) {
                     }}
                     required
                   >
-                    <option value="">Mod auswählen</option>
+                    <option value="">Eintrag auswählen</option>
                     {mods.map((mod) => (
                       <option key={mod.id} value={mod.id}>
-                        {mod.asset_type === "schematic" ? "Schematic · " : "Mod · "}
-                        {mod.name}
+                        {assetTypeLabel(mod.asset_type)} · {mod.name}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  {currentMod?.asset_type === "schematic" ? "Revision" : "Mod-Version"}
+                  {currentMod?.asset_type === "schematic" ? "Revision" : "Version"}
                   <input
                     value={versionData.version}
                     onChange={(e) => setVersionData({ ...versionData, version: e.target.value })}
@@ -2351,7 +2447,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                     required
                   />
                 </label>
-                {currentMod?.asset_type !== "schematic" && (
+                {currentMod?.asset_type === "mod" && (
                   <label>
                     Loader
                     <select
@@ -2417,7 +2513,11 @@ function AdminApp({ profile }: { profile: Profile }) {
                 </fieldset>
                 <label className="wide-field jar-picker">
                   <span>
-                    {currentMod?.asset_type === "schematic" ? "Schematic-Datei" : "JAR-Datei"}{" "}
+                    {currentMod?.asset_type === "schematic"
+                      ? "Schematic-Datei"
+                      : currentMod?.asset_type === "resourcepack"
+                        ? "Resourcepack-ZIP"
+                        : "JAR-Datei"}{" "}
                     <small>MAX. 250 MB · PRIVATER STORAGE</small>
                   </span>
                   <input
@@ -2426,7 +2526,9 @@ function AdminApp({ profile }: { profile: Profile }) {
                     accept={
                       currentMod?.asset_type === "schematic"
                         ? ".schem,.schematic,.litematic,application/octet-stream,application/gzip"
-                        : ".jar,application/java-archive"
+                        : currentMod?.asset_type === "resourcepack"
+                          ? ".zip,application/zip"
+                          : ".jar,application/java-archive"
                     }
                     onChange={(e) => setJar(e.target.files?.[0] ?? null)}
                     required
@@ -2437,14 +2539,18 @@ function AdminApp({ profile }: { profile: Profile }) {
                 <LockKeyhole size={13} />{" "}
                 {currentMod?.asset_type === "schematic"
                   ? "Datei wird serverseitig auf NBT-/GZIP-Signatur geprüft und privat gespeichert."
-                  : "Datei wird serverseitig als ZIP/JAR geprüft und privat gespeichert."}
+                  : currentMod?.asset_type === "resourcepack"
+                    ? "ZIP-Datei wird serverseitig als vollständiges Archiv geprüft und privat gespeichert."
+                    : "Datei wird serverseitig als ZIP/JAR geprüft und privat gespeichert."}
               </p>
               <button className="admin-action-button" disabled={busy || !currentMod}>
                 {busy
                   ? "Wird verarbeitet …"
                   : currentMod?.asset_type === "schematic"
                     ? "Schematic hochladen & veröffentlichen"
-                    : "Version hochladen & veröffentlichen"}{" "}
+                    : currentMod?.asset_type === "resourcepack"
+                      ? "Resourcepack hochladen & veröffentlichen"
+                      : "Version hochladen & veröffentlichen"}{" "}
                 <ArrowRight size={14} />
               </button>
             </form>
