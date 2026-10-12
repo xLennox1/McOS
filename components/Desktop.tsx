@@ -1510,6 +1510,8 @@ function AdminApp({ profile }: { profile: Profile }) {
   });
   const [jar, setJar] = useState<File | null>(null);
   const [newAssetFile, setNewAssetFile] = useState<File | null>(null);
+  const [newCoverFile, setNewCoverFile] = useState<File | null>(null);
+  const [coverFiles, setCoverFiles] = useState<Record<string, File | null>>({});
   const [editor, setEditor] = useState<
     Record<
       string,
@@ -1594,9 +1596,10 @@ function AdminApp({ profile }: { profile: Profile }) {
     setMessage("");
     try {
       const file = newAssetFile;
+      const imageUrl = newCoverFile ? await uploadCover(newCoverFile) : newMod.imageUrl;
       const created = await requestJson<Mod>("/api/admin/mods", {
         method: "POST",
-        body: JSON.stringify(newMod),
+        body: JSON.stringify({ ...newMod, imageUrl }),
       });
       setSelectedMod(created.id);
       setJar(file);
@@ -1608,8 +1611,11 @@ function AdminApp({ profile }: { profile: Profile }) {
         assetType: "mod",
       });
       setNewAssetFile(null);
+      setNewCoverFile(null);
       const newFileInput = document.getElementById("new-asset-upload") as HTMLInputElement | null;
       if (newFileInput) newFileInput.value = "";
+      const newCoverInput = document.getElementById("new-cover-upload") as HTMLInputElement | null;
+      if (newCoverInput) newCoverInput.value = "";
       await load();
       try {
         const filePath = await uploadAsset(file, created.asset_type);
@@ -1686,6 +1692,36 @@ function AdminApp({ profile }: { profile: Profile }) {
     });
     return checked.filePath;
   }
+  async function uploadCover(file: File) {
+    const headerBuffer = await file.slice(0, 16).arrayBuffer();
+    const header = Array.from(new Uint8Array(headerBuffer), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    const upload = await requestJson<{ path: string; token: string; mime: string }>(
+      "/api/admin/upload",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          action: "cover-prepare",
+          fileName: file.name,
+          size: file.size,
+          header,
+        }),
+      },
+    );
+    const { error: uploadError } = await createClient()
+      .storage.from("mod-covers")
+      .uploadToSignedUrl(upload.path, upload.token, file, {
+        contentType: upload.mime,
+        upsert: false,
+      });
+    if (uploadError) throw new Error(`Cover-Upload fehlgeschlagen: ${uploadError.message}`);
+    const checked = await requestJson<{ imageUrl: string }>("/api/admin/upload", {
+      method: "POST",
+      body: JSON.stringify({ action: "cover-verify", filePath: upload.path }),
+    });
+    return checked.imageUrl;
+  }
   async function publishVersion(event: FormEvent) {
     event.preventDefault();
     const assetType = currentMod?.asset_type;
@@ -1737,18 +1773,23 @@ function AdminApp({ profile }: { profile: Profile }) {
   }
   async function saveMod(modId: string) {
     const data = editor[modId];
-    if (data)
-      await act(
-        () =>
-          requestJson(`/api/admin/mods/${modId}`, {
-            method: "PATCH",
-            body: JSON.stringify(data),
-          }).then((result) => {
-            window.dispatchEvent(new Event("mcos:mods-updated"));
-            return result;
-          }),
-        "Mod-Einstellungen gespeichert.",
-      );
+    if (data) {
+      await act(async () => {
+        const coverFile = coverFiles[modId];
+        const imageUrl = coverFile ? await uploadCover(coverFile) : data.imageUrl;
+        const result = await requestJson(`/api/admin/mods/${modId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ ...data, imageUrl }),
+        });
+        if (coverFile) {
+          setCoverFiles((current) => ({ ...current, [modId]: null }));
+          const input = document.getElementById(`cover-upload-${modId}`) as HTMLInputElement | null;
+          if (input) input.value = "";
+        }
+        window.dispatchEvent(new Event("mcos:mods-updated"));
+        return result;
+      }, "Mod-Einstellungen gespeichert.");
+    }
   }
   async function toggleInvite(invite: Invite) {
     await act(
@@ -1962,6 +2003,17 @@ function AdminApp({ profile }: { profile: Profile }) {
                     value={newMod.imageUrl}
                     onChange={(e) => setNewMod({ ...newMod, imageUrl: e.target.value })}
                     placeholder="https://example.com/mod-bild.jpg"
+                  />
+                </label>
+                <label className="wide-field jar-picker">
+                  <span>
+                    Oder Cover vom Gerät auswählen <small>PNG, JPG, WEBP · MAX. 5 MB</small>
+                  </span>
+                  <input
+                    id="new-cover-upload"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                    onChange={(event) => setNewCoverFile(event.target.files?.[0] ?? null)}
                   />
                 </label>
                 <label>
@@ -2189,6 +2241,22 @@ function AdminApp({ profile }: { profile: Profile }) {
                             })
                           }
                           placeholder="https://example.com/mod-bild.jpg"
+                        />
+                      </label>
+                      <label className="wide-field jar-picker">
+                        <span>
+                          Lokales Cover auswählen <small>PNG, JPG, WEBP · MAX. 5 MB</small>
+                        </span>
+                        <input
+                          id={`cover-upload-${mod.id}`}
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                          onChange={(event) =>
+                            setCoverFiles((current) => ({
+                              ...current,
+                              [mod.id]: event.target.files?.[0] ?? null,
+                            }))
+                          }
                         />
                       </label>
                     </div>

@@ -4,7 +4,40 @@ import { requestAdmin } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const MAX_FILE_BYTES = 250 * 1024 * 1024;
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
 const SCHEMATIC_EXTENSIONS = new Set(["schem", "schematic", "litematic"]);
+const COVER_TYPES: Record<string, { mime: string; signature: (bytes: Uint8Array) => boolean }> = {
+  png: {
+    mime: "image/png",
+    signature: (bytes) =>
+      bytes.length >= 8 &&
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47 &&
+      bytes[4] === 0x0d &&
+      bytes[5] === 0x0a &&
+      bytes[6] === 0x1a &&
+      bytes[7] === 0x0a,
+  },
+  jpg: {
+    mime: "image/jpeg",
+    signature: (bytes) =>
+      bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
+  },
+  jpeg: {
+    mime: "image/jpeg",
+    signature: (bytes) =>
+      bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
+  },
+  webp: {
+    mime: "image/webp",
+    signature: (bytes) =>
+      bytes.length >= 12 &&
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP",
+  },
+};
 
 type AssetType = "mod" | "schematic";
 
@@ -32,6 +65,15 @@ function hasValidSignature(assetType: AssetType, extension: string, bytes: Uint8
 function validFilePath(filePath: string, assetType: AssetType) {
   const extension = assetType === "mod" ? "jar" : "(?:schem|schematic|litematic)";
   return new RegExp(`^[a-f0-9-]{36}\\.${extension}$`).test(filePath);
+}
+
+function validCoverPath(filePath: string) {
+  return /^[a-f0-9-]{36}\.(?:png|jpe?g|webp)$/.test(filePath);
+}
+
+function coverSignature(filePath: string, bytes: Uint8Array) {
+  const extension = extensionFor(filePath);
+  return COVER_TYPES[extension]?.signature(bytes) ?? false;
 }
 
 async function verifyJarArchive(filePath: string, size: number) {
@@ -110,6 +152,97 @@ export async function POST(request: Request) {
   if (!(await requestAdmin()))
     return NextResponse.json({ error: "Keine Administratorrechte." }, { status: 403 });
   const body = await request.json().catch(() => null);
+  if (body?.action === "cover-prepare") {
+    const fileName = typeof body.fileName === "string" ? body.fileName : "";
+    const extension = extensionFor(fileName);
+    const size = Number(body.size);
+    const coverType = COVER_TYPES[extension];
+    if (
+      !/^[^\\/]+$/.test(fileName) ||
+      !coverType ||
+      !Number.isSafeInteger(size) ||
+      size < 12 ||
+      size > MAX_COVER_BYTES
+    ) {
+      return NextResponse.json(
+        { error: "Nur PNG-, JPG- oder WEBP-Bilder bis maximal 5 MB sind erlaubt." },
+        { status: 400 },
+      );
+    }
+    const header = typeof body.header === "string" ? body.header : "";
+    const signature = Uint8Array.from(
+      header.match(/.{1,2}/g)?.map((byte: string) => Number.parseInt(byte, 16)) ?? [],
+    );
+    if (!coverSignature(`cover.${extension}`, signature)) {
+      return NextResponse.json(
+        { error: "Das Bildformat stimmt nicht mit dem Dateiinhalt überein." },
+        { status: 400 },
+      );
+    }
+    const filePath = `${randomUUID()}.${extension}`;
+    const admin = createAdminClient();
+    const { data, error } = await admin.storage
+      .from("mod-covers")
+      .createSignedUploadUrl(filePath, { upsert: false });
+    if (error || !data?.token)
+      return NextResponse.json(
+        { error: "Sicherer Cover-Upload konnte nicht vorbereitet werden." },
+        { status: 500 },
+      );
+    return NextResponse.json({ path: filePath, token: data.token, mime: coverType.mime });
+  }
+
+  if (body?.action === "cover-verify") {
+    const filePath = typeof body.filePath === "string" ? body.filePath : "";
+    if (!validCoverPath(filePath)) {
+      return NextResponse.json({ error: "Ungültiger Cover-Dateischlüssel." }, { status: 400 });
+    }
+    const admin = createAdminClient();
+    const { data: objects, error: listError } = await admin.storage
+      .from("mod-covers")
+      .list("", { search: filePath });
+    const object = objects?.find((item) => item.name === filePath);
+    const size = object?.metadata?.size;
+    const mime = COVER_TYPES[extensionFor(filePath)]?.mime;
+    if (
+      listError ||
+      !object ||
+      typeof size !== "number" ||
+      size <= 0 ||
+      size > MAX_COVER_BYTES ||
+      object.metadata?.mimetype !== mime
+    ) {
+      return NextResponse.json(
+        { error: "Cover-Upload fehlt oder überschreitet die Größenbegrenzung von 5 MB." },
+        { status: 400 },
+      );
+    }
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!baseUrl || !serviceKey)
+      return NextResponse.json({ error: "Storage ist nicht konfiguriert." }, { status: 500 });
+    const response = await fetch(`${baseUrl}/storage/v1/object/public/mod-covers/${filePath}`, {
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        Range: "bytes=0-15",
+      },
+    });
+    if (response.status !== 206)
+      return NextResponse.json(
+        { error: "Das Cover konnte nicht sicher geprüft werden." },
+        { status: 400 },
+      );
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!coverSignature(filePath, bytes))
+      return NextResponse.json(
+        { error: "Das gespeicherte Cover besitzt keine passende Bildsignatur." },
+        { status: 400 },
+      );
+    const { data: publicUrl } = admin.storage.from("mod-covers").getPublicUrl(filePath);
+    return NextResponse.json({ ok: true, imageUrl: publicUrl.publicUrl });
+  }
+
   if (body?.assetType !== "mod" && body?.assetType !== "schematic") {
     return NextResponse.json({ error: "Ungültiger Inhaltstyp." }, { status: 400 });
   }
