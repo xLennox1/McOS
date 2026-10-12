@@ -76,6 +76,26 @@ function coverSignature(filePath: string, bytes: Uint8Array) {
   return COVER_TYPES[extension]?.signature(bytes) ?? false;
 }
 
+async function ensureCoverBucket(admin: ReturnType<typeof createAdminClient>) {
+  const { data: bucket, error: bucketError } = await admin.storage.getBucket("mod-covers");
+  if (bucket) return;
+  if (bucketError?.status !== 404 && bucketError?.statusCode !== "404") {
+    throw bucketError ?? new Error("Supabase hat den Cover-Speicher nicht gefunden.");
+  }
+
+  const { error: createError } = await admin.storage.createBucket("mod-covers", {
+    public: true,
+    fileSizeLimit: MAX_COVER_BYTES,
+    allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"],
+  });
+  if (!createError) return;
+
+  // A parallel first upload may have created the bucket after getBucket returned 404.
+  const { data: createdBucket, error: retryError } = await admin.storage.getBucket("mod-covers");
+  if (createdBucket && !retryError) return;
+  throw createError;
+}
+
 async function verifyJarArchive(filePath: string, size: number) {
   const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -181,14 +201,30 @@ export async function POST(request: Request) {
     }
     const filePath = `${randomUUID()}.${extension}`;
     const admin = createAdminClient();
+    try {
+      await ensureCoverBucket(admin);
+    } catch (error) {
+      console.error("Failed to ensure the mod-covers storage bucket.", error);
+      return NextResponse.json(
+        {
+          error:
+            "Der Cover-Speicher fehlt und konnte nicht angelegt werden. Bitte prüfe den Supabase-Service-Key oder führe die Migration 202610120005_mod_covers.sql aus.",
+        },
+        { status: 500 },
+      );
+    }
     const { data, error } = await admin.storage
       .from("mod-covers")
       .createSignedUploadUrl(filePath, { upsert: false });
-    if (error || !data?.token)
+    if (error || !data?.token) {
+      console.error("Failed to create a signed mod cover upload URL.", error);
       return NextResponse.json(
-        { error: "Sicherer Cover-Upload konnte nicht vorbereitet werden." },
+        {
+          error: `Supabase konnte den sicheren Cover-Upload-Link nicht erstellen${error?.message ? `: ${error.message}` : "."}`,
+        },
         { status: 500 },
       );
+    }
     return NextResponse.json({ path: filePath, token: data.token, mime: coverType.mime });
   }
 
