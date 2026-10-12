@@ -2274,12 +2274,14 @@ function AdminApp({ profile }: { profile: Profile }) {
                                   return result;
                                 }),
                               release.published
-                                ? "Version wurde aus den Bibliotheken zurückgezogen."
-                                : "Version wurde für die Bibliotheken freigegeben.",
+                                ? `${assetTypeLabel(mod.asset_type)} wurde aus dem Browser zurückgezogen.`
+                                : `${assetTypeLabel(mod.asset_type)} wurde im Browser freigegeben.`,
                             )
                           }
                         >
-                          {release.published ? "Freigabe zurückziehen" : "Für Browser freigeben"}
+                          {release.published
+                            ? `Freigabe für ${assetTypeLabel(mod.asset_type)} zurückziehen`
+                            : `${assetTypeLabel(mod.asset_type)} freigeben`}
                         </button>
                       </div>
                     ))}
@@ -2364,11 +2366,15 @@ function AdminApp({ profile }: { profile: Profile }) {
                             })
                           }
                         />{" "}
-                        Eintrag im Browser aktiv
+                        {mod.asset_type === "mod"
+                          ? "Im Mod-Browser aktiv"
+                          : mod.asset_type === "schematic"
+                            ? "Im Schematic-Browser aktiv"
+                            : "Im Resourcepack-Browser aktiv"}
                       </label>
                       <small className="admin-release-hint">
-                        Versionen zusätzlich unten einzeln über „Für Browser freigeben“
-                        veröffentlichen.
+                        Versionen unten einzeln für den passenden Mod-, Schematic- oder
+                        Resourcepack-Browser freigeben.
                       </small>
                       <button
                         className="admin-action-button small-action"

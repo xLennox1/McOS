@@ -46,13 +46,20 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Eintrag wurde nicht gefunden." }, { status: 404 });
   if (!isAssetType(existing.asset_type))
     return NextResponse.json({ error: "Der Eintragstyp ist ungültig." }, { status: 500 });
-  if (published && !existing.active) {
-    return NextResponse.json(
-      {
-        error: "Der Eintrag ist deaktiviert. Aktiviere ihn zuerst, damit er im Browser erscheint.",
-      },
-      { status: 409 },
-    );
+  const activateMod = published && !existing.active;
+  if (activateMod) {
+    const { data: activatedMod, error: activateError } = await admin
+      .from("mods")
+      .update({ active: true, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("id, active")
+      .maybeSingle();
+    if (activateError || !activatedMod?.active) {
+      return NextResponse.json(
+        { error: "Der Eintrag konnte für den Browser nicht aktiviert werden." },
+        { status: 500 },
+      );
+    }
   }
   if (
     (existing.asset_type === "schematic" && !isSchematicPath) ||
@@ -133,6 +140,14 @@ export async function POST(request: Request, context: RouteContext) {
     entity_type: "mod_version",
     entity_id: data.id,
   });
+  if (activateMod) {
+    await admin.from("audit_log").insert({
+      actor_id: profile.id,
+      action: "mod.activated",
+      entity_type: "mod",
+      entity_id: id,
+    });
+  }
   return NextResponse.json({ ok: true, id: data.id, published: data.published, warning });
 }
 
@@ -161,13 +176,20 @@ export async function PATCH(request: Request, context: RouteContext) {
   const mod = Array.isArray(version.mods) ? version.mods[0] : version.mods;
   if (!isAssetType(mod.asset_type))
     return NextResponse.json({ error: "Der Eintragstyp ist ungültig." }, { status: 500 });
-  if (body.published && !mod.active) {
-    return NextResponse.json(
-      {
-        error: "Der Eintrag ist deaktiviert. Aktiviere ihn zuerst, damit er im Browser erscheint.",
-      },
-      { status: 409 },
-    );
+  const activateMod = body.published && !mod.active;
+  if (activateMod) {
+    const { data: activatedMod, error: activateError } = await admin
+      .from("mods")
+      .update({ active: true, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("id, active")
+      .maybeSingle();
+    if (activateError || !activatedMod?.active) {
+      return NextResponse.json(
+        { error: "Der Eintrag konnte für den Browser nicht aktiviert werden." },
+        { status: 500 },
+      );
+    }
   }
 
   const { data: updatedVersion, error: updateError } = await admin
@@ -209,6 +231,14 @@ export async function PATCH(request: Request, context: RouteContext) {
     entity_type: "mod_version",
     entity_id: body.versionId,
   });
+  if (activateMod) {
+    await admin.from("audit_log").insert({
+      actor_id: profile.id,
+      action: "mod.activated",
+      entity_type: "mod",
+      entity_id: id,
+    });
+  }
   return NextResponse.json({ ok: true, published: body.published, warning });
 }
 
