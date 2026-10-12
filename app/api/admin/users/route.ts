@@ -28,20 +28,23 @@ export async function PATCH(request: Request) {
   const status = body?.status;
   const hasStatus = ["active", "suspended"].includes(status);
   const hasPremium = typeof body?.premium === "boolean";
-  if (!id || id === actor.id || hasStatus === hasPremium) {
+  const hasRole = ["user", "co_owner", "owner"].includes(body?.role);
+  if (!id || id === actor.id || Number(hasStatus) + Number(hasPremium) + Number(hasRole) !== 1) {
     return NextResponse.json({ error: "Ungültige Benutzeraktion." }, { status: 400 });
   }
+  if (hasRole && body.role === "owner" && actor.role !== "owner")
+    return NextResponse.json(
+      { error: "Nur ein Owner darf die Owner-Rolle vergeben." },
+      { status: 403 },
+    );
   const admin = createAdminClient();
   const { data: target } = await admin
     .from("profiles")
     .select("role, status, premium")
     .eq("id", id)
     .maybeSingle();
-  if (!target || target.role === "admin") {
-    return NextResponse.json(
-      { error: "Administratorkonten können hier nicht gesperrt werden." },
-      { status: 403 },
-    );
+  if (!target) {
+    return NextResponse.json({ error: "Benutzerkonto wurde nicht gefunden." }, { status: 404 });
   }
   if (hasStatus && target.status === "pending") {
     return NextResponse.json(
@@ -51,7 +54,7 @@ export async function PATCH(request: Request) {
   }
   const { error } = await admin
     .from("profiles")
-    .update(hasPremium ? { premium: body.premium } : { status })
+    .update(hasRole ? { role: body.role } : hasPremium ? { premium: body.premium } : { status })
     .eq("id", id);
   if (error)
     return NextResponse.json(
@@ -60,17 +63,23 @@ export async function PATCH(request: Request) {
     );
   await admin.from("audit_log").insert({
     actor_id: actor.id,
-    action: hasPremium
-      ? body.premium
-        ? "user.pro_enabled"
-        : "user.pro_disabled"
-      : status === "suspended"
-        ? "user.suspended"
-        : "user.unsuspended",
+    action: hasRole
+      ? `user.role_${body.role}`
+      : hasPremium
+        ? body.premium
+          ? "user.pro_enabled"
+          : "user.pro_disabled"
+        : status === "suspended"
+          ? "user.suspended"
+          : "user.unsuspended",
     entity_type: "profile",
     entity_id: id,
   });
-  return NextResponse.json({ ok: true, premium: hasPremium ? body.premium : target.premium });
+  return NextResponse.json({
+    ok: true,
+    ...(hasRole ? { role: body.role } : {}),
+    premium: hasPremium ? body.premium : target.premium,
+  });
 }
 
 export async function DELETE(request: Request) {
@@ -88,11 +97,8 @@ export async function DELETE(request: Request) {
     .select("id, username, role, avatar_path")
     .eq("id", id)
     .maybeSingle();
-  if (!target || target.role === "admin")
-    return NextResponse.json(
-      { error: "Administratorkonten können hier nicht gelöscht werden." },
-      { status: 403 },
-    );
+  if (!target)
+    return NextResponse.json({ error: "Benutzerkonto wurde nicht gefunden." }, { status: 404 });
 
   await admin.from("audit_log").insert({
     actor_id: actor.id,

@@ -2,7 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/lib/types";
+import { isStaffRole, type Profile } from "@/lib/types";
 
 export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
@@ -33,6 +33,6 @@ export async function requireProfile() {
 
 export async function requireAdmin() {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/desktop");
+  if (!isStaffRole(profile.role)) redirect("/desktop");
   return profile;
 }

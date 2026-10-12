@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requestProfile } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isStaffRole } from "@/lib/types";
 
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxAvatarBytes = 5 * 1024 * 1024;
@@ -23,7 +24,7 @@ export async function GET() {
   return NextResponse.json({
     ...data,
     avatarUrl: avatar?.data?.signedUrl ?? null,
-    canEdit: data.premium || profile.role === "admin",
+    canEdit: data.premium || isStaffRole(profile.role),
   });
 }
 
@@ -36,7 +37,7 @@ export async function PATCH(request: Request) {
     .select("premium, avatar_path")
     .eq("id", profile.id)
     .maybeSingle();
-  if (!current || (!current.premium && profile.role !== "admin"))
+  if (!current || (!current.premium && !isStaffRole(profile.role)))
     return NextResponse.json(
       { error: "Profilbearbeitung ist nur mit MC OS PRO verfügbar." },
       { status: 403 },
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
     .select("premium, avatar_path")
     .eq("id", profile.id)
     .maybeSingle();
-  if (!current || (!current.premium && profile.role !== "admin"))
+  if (!current || (!current.premium && !isStaffRole(profile.role)))
     return NextResponse.json(
       { error: "Profilbilder sind nur mit MC OS PRO verfügbar." },
       { status: 403 },

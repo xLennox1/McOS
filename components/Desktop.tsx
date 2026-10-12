@@ -33,7 +33,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { AdminBroadcastApp, ChatApp, MailApp } from "@/components/CommunityApps";
 import { createClient } from "@/lib/supabase/client";
-import type { Invite, Mod, Profile } from "@/lib/types";
+import { type Invite, isStaffRole, type Mod, type Profile } from "@/lib/types";
 
 type AppId =
   | "library"
@@ -163,7 +163,7 @@ export function Desktop({ profile }: { profile: Profile }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  const availableApps = apps.filter((app) => app.id !== "admin" || profile.role === "admin");
+  const availableApps = apps.filter((app) => app.id !== "admin" || isStaffRole(profile.role));
   const openApp = (id: AppId) => {
     setTop((previous) => previous + 1);
     setWindows((current) => {
@@ -347,13 +347,25 @@ export function Desktop({ profile }: { profile: Profile }) {
                 </div>
               </header>
               <div className="window-body">
-                {item.id === "library" && <LibraryApp profile={profile} assetType="mod" />}
-                {item.id === "schematics" && <LibraryApp profile={profile} assetType="schematic" />}
+                {item.id === "library" && (
+                  <LibraryApp
+                    profile={profile}
+                    assetType="mod"
+                    onOpenSupport={() => openApp("chat")}
+                  />
+                )}
+                {item.id === "schematics" && (
+                  <LibraryApp
+                    profile={profile}
+                    assetType="schematic"
+                    onOpenSupport={() => openApp("chat")}
+                  />
+                )}
                 {item.id === "profile" && <ProfileApp profile={profile} />}
                 {item.id === "downloads" && <DownloadsApp />}
                 {item.id === "settings" && <SettingsApp profile={profile} />}
                 {item.id === "about" && <AboutApp />}
-                {item.id === "admin" && profile.role === "admin" && <AdminApp profile={profile} />}
+                {item.id === "admin" && isStaffRole(profile.role) && <AdminApp profile={profile} />}
                 {item.id === "chat" && <ChatApp profile={profile} />}
                 {item.id === "mail" && <MailApp profile={profile} />}
               </div>
@@ -367,7 +379,13 @@ export function Desktop({ profile }: { profile: Profile }) {
             <span className="avatar-small">{profile.username.slice(0, 1).toUpperCase()}</span>
             <div>
               <strong>{profile.username}</strong>
-              <small>{profile.role === "admin" ? "Administrator" : "MC OS Nutzer"}</small>
+              <small>
+                {profile.role === "owner" || profile.role === "admin"
+                  ? "Owner"
+                  : profile.role === "co_owner"
+                    ? "Co-Owner"
+                    : "MC OS Nutzer"}
+              </small>
             </div>
             <button onClick={signOut} aria-label="Abmelden">
               <LogOut size={16} />
@@ -576,7 +594,15 @@ function AppHeading({
   );
 }
 
-function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod" | "schematic" }) {
+function LibraryApp({
+  profile,
+  assetType,
+  onOpenSupport,
+}: {
+  profile: Profile;
+  assetType: "mod" | "schematic";
+  onOpenSupport: () => void;
+}) {
   const [mods, setMods] = useState<Mod[]>([]);
   const [search, setSearch] = useState("");
   const [loader, setLoader] = useState("");
@@ -649,6 +675,33 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
           </div>
         }
       />
+      {!profile.premium && !isStaffRole(profile.role) && (
+        <section className="pro-library-banner">
+          <span className="pro-library-icon">
+            <Sparkles size={17} />
+          </span>
+          <div className="pro-library-copy">
+            <strong>Mit MC OS PRO wird mehr freigeschaltet</strong>
+            <p>
+              Einige {assetType === "mod" ? "Mods" : "Schematics"} sind PRO-exklusiv. PRO wird nach
+              einer Anfrage von einem Owner oder Co-Owner freigeschaltet.
+            </p>
+          </div>
+          <div className="pro-library-actions">
+            <a
+              className="pro-library-discord"
+              href="https://discord.gg/TTGzMyBUu5"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Über Discord <ExternalLink size={13} />
+            </a>
+            <button className="pro-library-support" onClick={onOpenSupport}>
+              Upgrade anfragen <MessageCircle size={13} />
+            </button>
+          </div>
+        </section>
+      )}
       <div className="library-toolbar">
         <label className="library-search">
           <Search size={15} />
@@ -803,12 +856,12 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
                     onClick={() => download(item.id)}
                     disabled={
                       busyVersion === item.id ||
-                      (item.premium_only && !profile.premium && profile.role !== "admin")
+                      (item.premium_only && !profile.premium && !isStaffRole(profile.role))
                     }
                   >
                     {busyVersion === item.id ? (
                       "…"
-                    ) : item.premium_only && !profile.premium && profile.role !== "admin" ? (
+                    ) : item.premium_only && !profile.premium && !isStaffRole(profile.role) ? (
                       <>
                         <LockKeyhole size={14} /> PRO erforderlich
                       </>
@@ -840,7 +893,7 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
 
 function ProfileApp({ profile }: { profile: Profile }) {
   const [premium, setPremium] = useState(profile.premium);
-  const canEdit = premium || profile.role === "admin";
+  const canEdit = premium || isStaffRole(profile.role);
   const [username, setUsername] = useState(profile.username);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
@@ -934,8 +987,10 @@ function ProfileApp({ profile }: { profile: Profile }) {
           </span>
           <h3>{username}</h3>
           <p>
-            {profile.role === "admin"
-              ? "Administrator"
+            {isStaffRole(profile.role)
+              ? profile.role === "co_owner"
+                ? "Co-Owner"
+                : "Owner"
               : profile.premium
                 ? "MC OS PRO"
                 : "MC OS Mitglied"}
@@ -963,7 +1018,13 @@ function ProfileApp({ profile }: { profile: Profile }) {
         </div>
         <div>
           <span>ROLLE</span>
-          <strong>{profile.role === "admin" ? "Administrator" : "Mitglied"}</strong>
+          <strong>
+            {profile.role === "owner" || profile.role === "admin"
+              ? "Owner"
+              : profile.role === "co_owner"
+                ? "Co-Owner"
+                : "Mitglied"}
+          </strong>
         </div>
         <div>
           <span>KONTOSTATUS</span>
@@ -1235,7 +1296,7 @@ type AdminUser = {
   id: string;
   username: string;
   email: string;
-  role: string;
+  role: Profile["role"];
   status: string;
   created_at: string;
   premium: boolean;
@@ -1536,6 +1597,18 @@ function AdminApp({ profile }: { profile: Profile }) {
           body: JSON.stringify({ id: user.id, premium: !user.premium }),
         }),
       user.premium ? "MC OS PRO deaktiviert." : "MC OS PRO freigeschaltet.",
+    );
+  }
+  async function setUserRole(user: AdminUser, role: "owner" | "co_owner" | "user") {
+    await act(
+      () =>
+        requestJson("/api/admin/users", {
+          method: "PATCH",
+          body: JSON.stringify({ id: user.id, role }),
+        }),
+      `${user.username} hat jetzt die Rolle ${
+        role === "owner" ? "Owner" : role === "co_owner" ? "Co-Owner" : "Mitglied"
+      }.`,
     );
   }
   async function deleteUser(user: AdminUser) {
@@ -2134,7 +2207,13 @@ function AdminApp({ profile }: { profile: Profile }) {
                     <strong>{user.username}</strong>
                     <small>{user.email}</small>
                   </span>
-                  <span>{user.role === "admin" ? "Admin" : "Mitglied"}</span>
+                  <span>
+                    {user.role === "owner" || user.role === "admin"
+                      ? "Owner"
+                      : user.role === "co_owner"
+                        ? "Co-Owner"
+                        : "Mitglied"}
+                  </span>
                   <span>
                     <i
                       className={`invite-status-dot ${
@@ -2154,17 +2233,42 @@ function AdminApp({ profile }: { profile: Profile }) {
                   <span>{user.premium ? "PRO" : "—"}</span>
                   <span>{dateLabel(user.created_at)}</span>
                   <span className="user-admin-actions">
-                    {user.role !== "admin" && user.status !== "pending" && (
+                    {user.id !== profile.id && (
                       <>
-                        <button onClick={() => void setUserStatus(user)}>
-                          {user.status === "active" ? "Sperren" : "Entsperren"}
-                        </button>
-                        <button onClick={() => void setUserPremium(user)}>
-                          {user.premium ? "PRO aus" : "PRO an"}
-                        </button>
-                        <button className="danger-text" onClick={() => void deleteUser(user)}>
-                          Löschen
-                        </button>
+                        <label className="admin-role-select">
+                          <select
+                            aria-label={`Rolle für ${user.username}`}
+                            value={user.role === "admin" ? "owner" : user.role}
+                            disabled={busy || user.status === "pending"}
+                            onChange={(event) =>
+                              void setUserRole(
+                                user,
+                                event.target.value as "owner" | "co_owner" | "user",
+                              )
+                            }
+                          >
+                            <option value="user">Mitglied</option>
+                            <option value="co_owner">Co-Owner</option>
+                            {(profile.role === "owner" || user.role === "owner") && (
+                              <option value="owner" disabled={profile.role !== "owner"}>
+                                Owner
+                              </option>
+                            )}
+                          </select>
+                        </label>
+                        {user.status !== "pending" && (
+                          <>
+                            <button onClick={() => void setUserStatus(user)}>
+                              {user.status === "active" ? "Sperren" : "Entsperren"}
+                            </button>
+                            <button onClick={() => void setUserPremium(user)}>
+                              {user.premium ? "PRO aus" : "PRO an"}
+                            </button>
+                            <button className="danger-text" onClick={() => void deleteUser(user)}>
+                              Löschen
+                            </button>
+                          </>
+                        )}
                       </>
                     )}
                   </span>

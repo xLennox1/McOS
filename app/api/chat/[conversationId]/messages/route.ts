@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requestProfile } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isStaffRole } from "@/lib/types";
 
 type RouteContext = { params: Promise<{ conversationId: string }> };
 
@@ -12,7 +13,7 @@ async function canAccess(conversationId: string, userId: string, role: string) {
     .eq("id", conversationId)
     .maybeSingle();
   if (!conversation) return false;
-  if (conversation.kind === "support" && role === "admin") return true;
+  if (conversation.kind === "support" && isStaffRole(role)) return true;
   const { data } = await admin
     .from("conversation_members")
     .select("user_id")

@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, Copy, Mail, MessageCircle, Send, UserPlus } from "lucide-react";
+import { Check, Copy, Mail, MessageCircle, Phone, Send, UserPlus, Video } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Profile } from "@/lib/types";
+import { isStaffRole, type Profile } from "@/lib/types";
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -62,7 +62,7 @@ export function ChatApp({
   const [notice, setNotice] = useState("");
   const [idCopied, setIdCopied] = useState(false);
   const [busy, setBusy] = useState(false);
-  const isAdmin = profile.role === "admin";
+  const isAdmin = isStaffRole(profile.role);
 
   const load = useCallback(async () => {
     try {
@@ -454,6 +454,16 @@ function ChatPane({
   busy: boolean;
   ownId: string;
 }) {
+  function openCall(video: boolean) {
+    const room = `MCOS-${selected.replace(/[^a-zA-Z0-9]/g, "")}`;
+    const startMuted = video ? "false" : "true";
+    window.open(
+      `https://meet.jit.si/${room}#config.startWithVideoMuted=${startMuted}&config.startWithAudioMuted=false`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
   return (
     <section className="chat-pane">
       {selected ? (
@@ -464,7 +474,25 @@ function ChatPane({
             </span>
             <div>
               <strong>{title}</strong>
-              <small>Nachrichten aktualisieren sich automatisch</small>
+              <small>Live-Chat · Anrufe über Jitsi</small>
+            </div>
+            <div className="chat-call-actions">
+              <button
+                type="button"
+                onClick={() => openCall(false)}
+                aria-label="Sprachanruf über Jitsi starten"
+                title="Sprachanruf"
+              >
+                <Phone size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => openCall(true)}
+                aria-label="Videoanruf über Jitsi starten"
+                title="Videoanruf"
+              >
+                <Video size={15} />
+              </button>
             </div>
           </header>
           <div className="chat-messages" aria-live="polite">

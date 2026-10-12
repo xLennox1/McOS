@@ -1,7 +1,7 @@
 export type Profile = {
   id: string;
   username: string;
-  role: "admin" | "user";
+  role: "owner" | "co_owner" | "admin" | "user";
   status: "pending" | "active" | "suspended";
   created_at: string;
   premium: boolean;
@@ -13,6 +13,10 @@ export type Profile = {
     wallpaper?: string;
   };
 };
+
+export function isStaffRole(role: string) {
+  return role === "owner" || role === "co_owner" || role === "admin";
+}
 
 export type ModVersion = {
   id: string;

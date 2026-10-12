@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requestProfile } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isStaffRole } from "@/lib/types";
 
 async function publicProfile(id: string) {
   const admin = createAdminClient();
@@ -88,7 +89,7 @@ export async function GET(request: Request) {
     created_at: string;
     profile: Awaited<ReturnType<typeof publicProfile>>;
   }[] = [];
-  if (profile.role === "admin" && new URL(request.url).searchParams.get("support") === "all") {
+  if (isStaffRole(profile.role) && new URL(request.url).searchParams.get("support") === "all") {
     const { data: supportRows, error } = await admin
       .from("conversations")
       .select("id, created_at, created_by")
@@ -194,7 +195,7 @@ export async function POST(request: Request) {
   }
 
   if (action === "support") {
-    if (profile.role === "admin")
+    if (isStaffRole(profile.role))
       return NextResponse.json(
         { error: "Admins können Support-Unterhaltungen im Admin Center einsehen." },
         { status: 400 },

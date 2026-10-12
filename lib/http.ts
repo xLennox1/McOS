@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/lib/types";
+import { isStaffRole, type Profile } from "@/lib/types";
 
 export function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -28,5 +28,5 @@ export async function requestProfile(): Promise<Profile | null> {
 
 export async function requestAdmin() {
   const profile = await requestProfile();
-  return profile?.role === "admin" ? profile : null;
+  return profile && isStaffRole(profile.role) ? profile : null;
 }

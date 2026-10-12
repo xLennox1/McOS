@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requestProfile } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isStaffRole } from "@/lib/types";
 
 export async function GET() {
   const profile = await requestProfile();
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     .select("premium, role")
     .eq("id", profile.id)
     .maybeSingle();
-  if (version.premium_only && access?.role !== "admin" && access?.premium !== true)
+  if (version.premium_only && !isStaffRole(access?.role ?? "") && access?.premium !== true)
     return NextResponse.json(
       { error: "Diese Version ist exklusiv für MC OS PRO." },
       { status: 403 },
