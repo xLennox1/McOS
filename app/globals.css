@@ -494,17 +494,17 @@ button:disabled {
   left: 29px;
   display: grid;
   grid-auto-flow: column;
-  grid-template-rows: repeat(6, 92px);
-  gap: 8px;
+  grid-template-rows: repeat(5, 108px);
+  gap: 4px;
 }
 .desktop-icon {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  width: 88px;
-  min-height: 90px;
-  padding: 5px 3px;
+  gap: 6px;
+  width: 96px;
+  min-height: 106px;
+  padding: 4px 3px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
@@ -523,10 +523,11 @@ button:disabled {
 .desktop-icon-picture {
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
   border: 1px solid color-mix(in srgb, var(--icon-color), transparent 72%);
-  border-radius: 16px;
+  border-radius: 18px;
   background: linear-gradient(
     145deg,
     color-mix(in srgb, var(--icon-color), transparent 88%),
@@ -536,8 +537,9 @@ button:disabled {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 .desktop-icon-picture svg {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
 }
 .desktop-welcome {
   position: absolute;
@@ -3258,9 +3260,9 @@ button:disabled {
     display: none;
   }
   .desktop-icon {
-    flex: 0 0 78px;
-    width: 78px;
-    min-height: 72px;
+    flex: 0 0 96px;
+    width: 96px;
+    min-height: 106px;
   }
   .desktop-welcome {
     top: clamp(140px, 28%, 220px);
@@ -3381,20 +3383,12 @@ button:disabled {
     gap: 4px;
   }
   .desktop-icon {
-    flex-basis: 68px;
-    width: 68px;
-    min-height: 66px;
-    gap: 5px;
-    padding: 5px 2px;
+    flex-basis: 96px;
+    width: 96px;
+    min-height: 106px;
+    gap: 6px;
+    padding: 4px 3px;
     font-size: 9px;
-  }
-  .desktop-icon-picture {
-    width: 50px;
-    height: 50px;
-  }
-  .desktop-icon-picture svg {
-    width: 27px;
-    height: 27px;
   }
   .desktop-welcome {
     top: clamp(138px, 30%, 220px);
