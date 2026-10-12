@@ -99,7 +99,15 @@ export async function POST(request: Request, context: RouteContext) {
         { status: 409 },
       );
     return NextResponse.json(
-      { error: "Version konnte nicht gespeichert werden. Prüfe die Supabase-Migrationen." },
+      { error: `Version konnte nicht gespeichert werden: ${error.message}` },
+      { status: 500 },
+    );
+  }
+  if (data.published !== published) {
+    return NextResponse.json(
+      {
+        error: "Supabase hat den Veröffentlichungsstatus nicht übernommen. Bitte erneut versuchen.",
+      },
       { status: 500 },
     );
   }
@@ -155,16 +163,26 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 
-  const { error: updateError } = await admin
+  const { data: updatedVersion, error: updateError } = await admin
     .from("mod_versions")
     .update({ published: body.published })
     .eq("id", body.versionId)
-    .eq("mod_id", id);
+    .eq("mod_id", id)
+    .select("id, published")
+    .maybeSingle();
   if (updateError)
     return NextResponse.json(
-      { error: "Veröffentlichungsstatus konnte nicht gespeichert werden." },
+      { error: `Veröffentlichungsstatus konnte nicht gespeichert werden: ${updateError.message}` },
       { status: 500 },
     );
+  if (!updatedVersion || updatedVersion.published !== body.published) {
+    return NextResponse.json(
+      {
+        error: "Supabase hat den Veröffentlichungsstatus nicht übernommen. Bitte erneut versuchen.",
+      },
+      { status: 500 },
+    );
+  }
 
   let warning: string | undefined;
   if (body.published && !version.published) {

@@ -68,7 +68,7 @@ export async function GET(request: Request) {
   const allowedIds = new Set(filteredVersions.map((item) => item.mod_id));
   return NextResponse.json(
     mods
-      .filter((mod) => (!loader && !gameVersion) || allowedIds.has(mod.id))
+      .filter((mod) => allowedIds.has(mod.id))
       .map((mod) => ({
         ...mod,
         mod_versions: filteredVersions.filter((item) => item.mod_id === mod.id),

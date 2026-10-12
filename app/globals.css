@@ -1412,25 +1412,28 @@ button:disabled {
 }
 .modal-backdrop {
   position: fixed;
-  z-index: 15;
+  z-index: 60;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 20px;
+  overflow: auto;
+  padding: clamp(10px, 3vw, 24px);
   background: rgba(3, 7, 12, 0.65);
   backdrop-filter: blur(7px);
 }
 .mod-detail {
   position: relative;
-  width: min(510px, 100%);
-  max-height: 90%;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 48px);
+  min-width: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 30px;
   border: 1px solid rgba(216, 233, 244, 0.15);
   border-radius: 12px;
   background: #101925;
   box-shadow: 0 25px 90px #0009;
-  animation: window-in 0.18s ease both;
+  animation: modal-in 0.18s ease both;
 }
 .modal-close {
   position: absolute;
@@ -2232,8 +2235,15 @@ button:disabled {
 }
 .admin-mod-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 9px;
+}
+.admin-release-hint {
+  flex-basis: 100%;
+  color: #8795a3;
+  font-size: 8px;
+  line-height: 1.45;
 }
 .admin-checkbox {
   display: flex;
@@ -3205,6 +3215,16 @@ button:disabled {
     transform: translate(-50%, 0) scale(1);
   }
 }
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 @keyframes panel-in {
   from {
     opacity: 0;
@@ -3530,7 +3550,23 @@ button:disabled {
     font-size: 7px;
   }
   .mod-detail {
-    padding: 25px 18px;
+    max-height: calc(100dvh - 20px);
+    padding: 23px 15px 17px;
+  }
+  .mod-detail h2 {
+    max-width: calc(100% - 28px);
+    overflow-wrap: anywhere;
+    font-size: 23px;
+  }
+  .version-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .version-row > div {
+    flex: 1 1 150px;
+  }
+  .version-row .download-button {
+    flex: 1 1 100%;
   }
   .profile-card {
     align-items: flex-start;

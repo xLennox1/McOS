@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { AdminBroadcastApp, ChatApp, MailApp } from "@/components/CommunityApps";
 import { createClient } from "@/lib/supabase/client";
 import { type Invite, isStaffRole, type Mod, type Profile } from "@/lib/types";
@@ -839,102 +840,115 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod"
           })}
         </div>
       )}
-      {selected && (
-        <div className="modal-backdrop">
-          <section
-            className="mod-detail"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${selected.name} Details`}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setSelected(null);
-            }}
+      {selected &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="modal-backdrop"
+            style={
+              {
+                "--accent": accentColor[profile.settings?.accent ?? "cyan"] ?? accentColor.cyan,
+              } as React.CSSProperties
+            }
           >
-            <button
-              className="modal-close"
-              onClick={() => setSelected(null)}
-              aria-label="Schließen"
+            <section
+              className="mod-detail"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${selected.name} Details`}
+              tabIndex={-1}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setSelected(null);
+              }}
             >
-              <X size={16} />
-            </button>
-            <span className="app-eyebrow">
-              {selected.asset_type === "schematic" ? "SCHEMATIC" : selected.category.toUpperCase()}{" "}
-              / MC OS
-            </span>
-            <h2>{selected.name}</h2>
-            <p className="mod-detail-description">
-              {selected.description || "Keine Beschreibung verfügbar."}
-            </p>
-            <div className="detail-versions">
-              <span className="detail-label">VERÖFFENTLICHUNGEN</span>
-              {selected.mod_versions.map((item) => (
-                <div
-                  className={`version-row ${
-                    item.premium_only && !profile.premium && !isStaffRole(profile.role)
-                      ? "version-row-locked"
-                      : ""
-                  }`}
-                  key={item.id}
-                >
-                  <div>
-                    <strong>v{item.version}</strong>
-                    <small>
-                      Minecraft {item.minecraft_version}
-                      {selected.asset_type === "mod" && item.loaders.length
-                        ? ` · ${item.loaders.join(", ")}`
-                        : ""}
-                      {" · "}
-                      {formatSize(item.file_size)}
-                      {item.premium_only ? " · PRO" : ""}
-                    </small>
-                    {item.premium_only && (
-                      <span className="version-access-badge">
-                        <LockKeyhole size={11} /> Nur für MC OS PRO
-                      </span>
-                    )}
-                    <p>{item.changelog}</p>
-                  </div>
-                  <button
-                    className="download-button"
-                    onClick={() => download(item.id)}
-                    disabled={
-                      busyVersion === item.id ||
-                      (item.premium_only && !profile.premium && !isStaffRole(profile.role))
-                    }
-                    title={
-                      item.premium_only && !profile.premium && !isStaffRole(profile.role)
-                        ? "Diese Version kann nur mit MC OS PRO heruntergeladen werden."
-                        : undefined
-                    }
-                  >
-                    {busyVersion === item.id ? (
-                      "…"
-                    ) : item.premium_only && !profile.premium && !isStaffRole(profile.role) ? (
-                      <>
-                        <LockKeyhole size={14} /> PRO erforderlich
-                      </>
-                    ) : (
-                      <>
-                        <Download size={15} /> Download
-                      </>
-                    )}
-                  </button>
-                </div>
-              ))}
-            </div>
-            {selected.mod_versions.length === 0 && (
-              <div className="empty-inline">
-                Für diesen Eintrag wurde noch keine Veröffentlichung angelegt.
-              </div>
-            )}
-            {error && (
-              <p className="inline-error" role="alert">
-                {error}
+              <button
+                className="modal-close"
+                onClick={() => setSelected(null)}
+                aria-label="Schließen"
+              >
+                <X size={16} />
+              </button>
+              <span className="app-eyebrow">
+                {selected.asset_type === "schematic"
+                  ? "SCHEMATIC"
+                  : selected.category.toUpperCase()}{" "}
+                / MC OS
+              </span>
+              <h2>{selected.name}</h2>
+              <p className="mod-detail-description">
+                {selected.description || "Keine Beschreibung verfügbar."}
               </p>
-            )}
-          </section>
-        </div>
-      )}
+              <div className="detail-versions">
+                <span className="detail-label">VERÖFFENTLICHUNGEN</span>
+                {selected.mod_versions.map((item) => (
+                  <div
+                    className={`version-row ${
+                      item.premium_only && !profile.premium && !isStaffRole(profile.role)
+                        ? "version-row-locked"
+                        : ""
+                    }`}
+                    key={item.id}
+                  >
+                    <div>
+                      <strong>v{item.version}</strong>
+                      <small>
+                        Minecraft {item.minecraft_version}
+                        {selected.asset_type === "mod" && item.loaders.length
+                          ? ` · ${item.loaders.join(", ")}`
+                          : ""}
+                        {" · "}
+                        {formatSize(item.file_size)}
+                        {item.premium_only ? " · PRO" : ""}
+                      </small>
+                      {item.premium_only && (
+                        <span className="version-access-badge">
+                          <LockKeyhole size={11} /> Nur für MC OS PRO
+                        </span>
+                      )}
+                      <p>{item.changelog}</p>
+                    </div>
+                    <button
+                      className="download-button"
+                      onClick={() => download(item.id)}
+                      disabled={
+                        busyVersion === item.id ||
+                        (item.premium_only && !profile.premium && !isStaffRole(profile.role))
+                      }
+                      title={
+                        item.premium_only && !profile.premium && !isStaffRole(profile.role)
+                          ? "Diese Version kann nur mit MC OS PRO heruntergeladen werden."
+                          : undefined
+                      }
+                    >
+                      {busyVersion === item.id ? (
+                        "…"
+                      ) : item.premium_only && !profile.premium && !isStaffRole(profile.role) ? (
+                        <>
+                          <LockKeyhole size={14} /> PRO erforderlich
+                        </>
+                      ) : (
+                        <>
+                          <Download size={15} /> Download
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {selected.mod_versions.length === 0 && (
+                <div className="empty-inline">
+                  Für diesen Eintrag wurde noch keine Veröffentlichung angelegt.
+                </div>
+              )}
+              {error && (
+                <p className="inline-error" role="alert">
+                  {error}
+                </p>
+              )}
+            </section>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -1599,7 +1613,7 @@ function AdminApp({ profile }: { profile: Profile }) {
       await load();
       try {
         const filePath = await uploadAsset(file, created.asset_type);
-        const release = await requestJson<{ warning?: string }>(
+        const release = await requestJson<{ published: boolean; warning?: string }>(
           `/api/admin/mods/${created.id}/versions`,
           {
             method: "POST",
@@ -1618,7 +1632,7 @@ function AdminApp({ profile }: { profile: Profile }) {
         if (existingFileInput) existingFileInput.value = "";
         setMessage(
           `${created.asset_type === "mod" ? "Mod" : "Schematic"} wurde angelegt und ${
-            versionData.published ? "veröffentlicht" : "als Entwurf gespeichert"
+            release.published ? "veröffentlicht" : "als Entwurf gespeichert"
           }.${release.warning ? ` ${release.warning}` : ""}`,
         );
         window.dispatchEvent(new Event("mcos:mods-updated"));
@@ -1684,7 +1698,7 @@ function AdminApp({ profile }: { profile: Profile }) {
     setMessage("");
     try {
       const filePath = await uploadAsset(jar, assetType);
-      const release = await requestJson<{ warning?: string }>(
+      const release = await requestJson<{ published: boolean; warning?: string }>(
         `/api/admin/mods/${selectedMod}/versions`,
         {
           method: "POST",
@@ -1701,7 +1715,7 @@ function AdminApp({ profile }: { profile: Profile }) {
       if (input) input.value = "";
       setMessage(
         `${assetType === "mod" ? "Mod-Version" : "Schematic"} wurde ${
-          versionData.published ? "veröffentlicht" : "als Entwurf gespeichert"
+          release.published ? "veröffentlicht" : "als Entwurf gespeichert"
         }.${release.warning ? ` ${release.warning}` : ""}`,
       );
       window.dispatchEvent(new Event("mcos:mods-updated"));
@@ -1726,7 +1740,13 @@ function AdminApp({ profile }: { profile: Profile }) {
     if (data)
       await act(
         () =>
-          requestJson(`/api/admin/mods/${modId}`, { method: "PATCH", body: JSON.stringify(data) }),
+          requestJson(`/api/admin/mods/${modId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+          }).then((result) => {
+            window.dispatchEvent(new Event("mcos:mods-updated"));
+            return result;
+          }),
         "Mod-Einstellungen gespeichert.",
       );
   }
@@ -2063,7 +2083,7 @@ function AdminApp({ profile }: { profile: Profile }) {
               <div className="admin-mod-list">
                 <div className="admin-form-title">
                   <Blocks size={15} />
-                  <strong>2. Mod- und Schematic-Einträge verwalten</strong>
+                  <strong>2. Einträge und Versionsfreigaben verwalten</strong>
                 </div>
                 {mods.map((mod) => (
                   <div className="admin-mod-editor" key={mod.id}>
@@ -2111,11 +2131,11 @@ function AdminApp({ profile }: { profile: Profile }) {
                                 }),
                               release.published
                                 ? "Version wurde aus den Bibliotheken zurückgezogen."
-                                : "Version wurde in den Bibliotheken veröffentlicht.",
+                                : "Version wurde für die Bibliotheken freigegeben.",
                             )
                           }
                         >
-                          {release.published ? "Zurückziehen" : "Veröffentlichen"}
+                          {release.published ? "Freigabe zurückziehen" : "Für Browser freigeben"}
                         </button>
                       </div>
                     ))}
@@ -2184,8 +2204,12 @@ function AdminApp({ profile }: { profile: Profile }) {
                             })
                           }
                         />{" "}
-                        Aktiv
+                        Eintrag im Browser aktiv
                       </label>
+                      <small className="admin-release-hint">
+                        Versionen zusätzlich unten einzeln über „Für Browser freigeben“
+                        veröffentlichen.
+                      </small>
                       <button
                         className="admin-action-button small-action"
                         onClick={() => void saveMod(mod.id)}

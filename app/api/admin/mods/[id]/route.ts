@@ -32,7 +32,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     .replace(/^-|-$/g, "")
     .slice(0, 60);
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: updatedMod, error } = await admin
     .from("mods")
     .update({
       name,
@@ -43,9 +43,17 @@ export async function PATCH(request: Request, context: RouteContext) {
       active: body.active,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id, active")
+    .maybeSingle();
   if (error)
     return NextResponse.json({ error: "Mod konnte nicht gespeichert werden." }, { status: 500 });
+  if (!updatedMod || updatedMod.active !== body.active) {
+    return NextResponse.json(
+      { error: "Supabase hat die Browser-Freigabe nicht übernommen. Bitte erneut versuchen." },
+      { status: 500 },
+    );
+  }
   await admin.from("audit_log").insert({
     actor_id: profile.id,
     action: body.active ? "mod.updated" : "mod.deactivated",
