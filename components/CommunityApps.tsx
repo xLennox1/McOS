@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, Mail, MessageCircle, Phone, Send, UserPlus, Video } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isStaffRole, type Profile } from "@/lib/types";
 
@@ -44,9 +44,11 @@ type ChatMessage = {
 export function ChatApp({
   profile,
   supportOnly = false,
+  supportRequest = 0,
 }: {
   profile: Profile;
   supportOnly?: boolean;
+  supportRequest?: number;
 }) {
   const [data, setData] = useState<ChatData>({
     friends: [],
@@ -62,6 +64,7 @@ export function ChatApp({
   const [notice, setNotice] = useState("");
   const [idCopied, setIdCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const handledSupportRequest = useRef(0);
   const isAdmin = isStaffRole(profile.role);
 
   const load = useCallback(async () => {
@@ -192,6 +195,24 @@ export function ChatApp({
     }, "Support-Chat geöffnet.");
   }
 
+  useEffect(() => {
+    if (supportRequest <= handledSupportRequest.current) return;
+    handledSupportRequest.current = supportRequest;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    api<{ id: string }>("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ action: "support" }),
+    })
+      .then((result) => {
+        setSelected(result.id);
+        setNotice("Support-Chat geöffnet.");
+      })
+      .catch((reason: Error) => setError(reason.message))
+      .finally(() => setBusy(false));
+  }, [supportRequest]);
+
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
     if (!selected || !draft.trim()) return;
@@ -245,7 +266,7 @@ export function ChatApp({
           </button>
         </section>
       )}
-      {!supportOnly && !isAdmin && (
+      {!supportOnly && (
         <form className="friend-add-form" onSubmit={addFriend}>
           <label htmlFor="friend-id">Freund über Benutzer-ID hinzufügen</label>
           <div>
@@ -294,7 +315,7 @@ export function ChatApp({
           ))}
         </section>
       )}
-      {!supportOnly && !isAdmin && (
+      {!supportOnly && (
         <section className="community-list-section">
           <h3>Freunde</h3>
           {data.friends.map((friend) => (
@@ -310,7 +331,11 @@ export function ChatApp({
               </span>
             </button>
           ))}
-          {data.friends.length === 0 && <p className="community-empty">Noch keine Freunde.</p>}
+          {data.friends.length === 0 && (
+            <p className="community-empty">
+              Füge jemanden über seine Chat-ID hinzu, um zu telefonieren.
+            </p>
+          )}
         </section>
       )}
       {!isAdmin && (
@@ -484,6 +509,7 @@ function ChatPane({
                 title="Sprachanruf"
               >
                 <Phone size={15} />
+                <span>Audio</span>
               </button>
               <button
                 type="button"
@@ -492,6 +518,7 @@ function ChatPane({
                 title="Videoanruf"
               >
                 <Video size={15} />
+                <span>Video</span>
               </button>
             </div>
           </header>
@@ -536,9 +563,23 @@ function ChatPane({
         </>
       ) : (
         <div className="chat-empty-panel">
-          <MessageCircle size={29} />
-          <strong>Deine Chats</strong>
-          <span>Wähle links einen Chat oder sende eine Freundschaftsanfrage.</span>
+          <span className="chat-empty-icon">
+            <MessageCircle size={26} />
+          </span>
+          <strong>Audio- und Videoanrufe</strong>
+          <span>
+            Wähle links einen Freund oder Support-Chat. Dort kannst du direkt einen Anruf starten.
+          </span>
+          <div className="chat-call-actions chat-empty-call-actions">
+            <button type="button" disabled aria-label="Sprachanruf: erst einen Chat auswählen">
+              <Phone size={15} />
+              <span>Audio</span>
+            </button>
+            <button type="button" disabled aria-label="Videoanruf: erst einen Chat auswählen">
+              <Video size={15} />
+              <span>Video</span>
+            </button>
+          </div>
         </div>
       )}
     </section>

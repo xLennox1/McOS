@@ -1080,12 +1080,13 @@ button:disabled {
   align-items: center;
   gap: 12px;
   margin: -7px 0 19px;
-  padding: 13px 15px;
-  border: 1px solid rgba(178, 156, 255, 0.2);
-  border-radius: 10px;
+  padding: 15px 17px;
+  border: 1px solid rgba(178, 156, 255, 0.32);
+  border-radius: 11px;
   background:
-    radial-gradient(ellipse at 15% 0%, rgba(123, 96, 211, 0.16), transparent 50%),
-    rgba(18, 20, 37, 0.68);
+    radial-gradient(ellipse at 15% 0%, rgba(123, 96, 211, 0.23), transparent 50%),
+    rgba(23, 23, 43, 0.92);
+  box-shadow: 0 8px 24px rgba(3, 5, 14, 0.22);
 }
 .pro-library-icon {
   display: grid;
@@ -1104,13 +1105,13 @@ button:disabled {
 }
 .pro-library-copy strong {
   color: #e1d9ff;
-  font-size: 10px;
+  font-size: 12px;
 }
 .pro-library-copy p {
   margin: 4px 0 0;
   color: #9694aa;
-  font-size: 8px;
-  line-height: 1.5;
+  font-size: 10px;
+  line-height: 1.55;
 }
 .pro-library-actions {
   display: flex;
@@ -1133,7 +1134,7 @@ button:disabled {
   color: #d3caff;
   cursor: pointer;
   font: inherit;
-  font-size: 8px;
+  font-size: 9px;
   text-decoration: none;
 }
 .pro-library-actions a:hover,
@@ -2745,18 +2746,45 @@ button:disabled {
   margin-left: auto;
 }
 .chat-call-actions button {
-  display: grid;
-  width: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 29px;
   height: 29px;
-  place-items: center;
+  padding: 0 8px;
   border: 1px solid rgba(93, 208, 218, 0.18);
   border-radius: 7px;
   background: rgba(70, 190, 202, 0.07);
   color: #8edce2;
   cursor: pointer;
+  font: inherit;
+  font-size: 10px;
 }
 .chat-call-actions button:hover {
   background: rgba(70, 190, 202, 0.17);
+}
+.chat-call-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.chat-empty-call-actions {
+  margin: 5px auto 0;
+}
+.chat-empty-call-actions button {
+  min-width: 82px;
+  height: 34px;
+  font-size: 9px;
+}
+.chat-empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid rgba(93, 208, 218, 0.15);
+  border-radius: 14px;
+  background: rgba(70, 190, 202, 0.07);
+  color: #8edce2;
 }
 .chat-messages {
   display: flex;

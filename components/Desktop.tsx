@@ -157,6 +157,7 @@ export function Desktop({ profile }: { profile: Profile }) {
   const [quickOpen, setQuickOpen] = useState(false);
   const [clock, setClock] = useState(new Date());
   const [search, setSearch] = useState("");
+  const [supportRequest, setSupportRequest] = useState(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(new Date()), 1000);
@@ -351,14 +352,20 @@ export function Desktop({ profile }: { profile: Profile }) {
                   <LibraryApp
                     profile={profile}
                     assetType="mod"
-                    onOpenSupport={() => openApp("chat")}
+                    onOpenSupport={() => {
+                      openApp("chat");
+                      if (!isStaffRole(profile.role)) setSupportRequest((count) => count + 1);
+                    }}
                   />
                 )}
                 {item.id === "schematics" && (
                   <LibraryApp
                     profile={profile}
                     assetType="schematic"
-                    onOpenSupport={() => openApp("chat")}
+                    onOpenSupport={() => {
+                      openApp("chat");
+                      if (!isStaffRole(profile.role)) setSupportRequest((count) => count + 1);
+                    }}
                   />
                 )}
                 {item.id === "profile" && <ProfileApp profile={profile} />}
@@ -366,7 +373,9 @@ export function Desktop({ profile }: { profile: Profile }) {
                 {item.id === "settings" && <SettingsApp profile={profile} />}
                 {item.id === "about" && <AboutApp />}
                 {item.id === "admin" && isStaffRole(profile.role) && <AdminApp profile={profile} />}
-                {item.id === "chat" && <ChatApp profile={profile} />}
+                {item.id === "chat" && (
+                  <ChatApp profile={profile} supportRequest={supportRequest} />
+                )}
                 {item.id === "mail" && <MailApp profile={profile} />}
               </div>
             </section>
@@ -675,33 +684,33 @@ function LibraryApp({
           </div>
         }
       />
-      {!profile.premium && !isStaffRole(profile.role) && (
-        <section className="pro-library-banner">
-          <span className="pro-library-icon">
-            <Sparkles size={17} />
-          </span>
-          <div className="pro-library-copy">
-            <strong>Mit MC OS PRO wird mehr freigeschaltet</strong>
-            <p>
-              Einige {assetType === "mod" ? "Mods" : "Schematics"} sind PRO-exklusiv. PRO wird nach
-              einer Anfrage von einem Owner oder Co-Owner freigeschaltet.
-            </p>
-          </div>
-          <div className="pro-library-actions">
-            <a
-              className="pro-library-discord"
-              href="https://discord.gg/TTGzMyBUu5"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Über Discord <ExternalLink size={13} />
-            </a>
-            <button className="pro-library-support" onClick={onOpenSupport}>
-              Upgrade anfragen <MessageCircle size={13} />
-            </button>
-          </div>
-        </section>
-      )}
+      <section className="pro-library-banner" aria-label="MC OS PRO">
+        <span className="pro-library-icon">
+          <Sparkles size={17} />
+        </span>
+        <div className="pro-library-copy">
+          <strong>Mehr freischalten mit MC OS PRO</strong>
+          <p>
+            {profile.premium || isStaffRole(profile.role)
+              ? `PRO-Inhalte dieser ${assetType === "mod" ? "Mod-Bibliothek" : "Schematic-Bibliothek"} sind für dein Konto bereits freigeschaltet.`
+              : `Einige ${assetType === "mod" ? "Mods" : "Schematics"} sind PRO-exklusiv. Owner oder Co-Owner schalten PRO nach deiner Anfrage frei.`}
+          </p>
+        </div>
+        <div className="pro-library-actions">
+          <a
+            className="pro-library-discord"
+            href="https://discord.gg/TTGzMyBUu5"
+            target="_blank"
+            rel="noreferrer"
+          >
+            PRO auf Discord <ExternalLink size={13} />
+          </a>
+          <button className="pro-library-support" onClick={onOpenSupport}>
+            {profile.premium || isStaffRole(profile.role) ? "Support öffnen" : "Upgrade anfragen"}
+            <MessageCircle size={13} />
+          </button>
+        </div>
+      </section>
       <div className="library-toolbar">
         <label className="library-search">
           <Search size={15} />

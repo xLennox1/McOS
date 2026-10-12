@@ -46,6 +46,11 @@ export async function PATCH(request: Request) {
   if (!target) {
     return NextResponse.json({ error: "Benutzerkonto wurde nicht gefunden." }, { status: 404 });
   }
+  if (target.role === "owner" && actor.role !== "owner")
+    return NextResponse.json(
+      { error: "Co-Owner dürfen das Owner-Konto nicht verwalten." },
+      { status: 403 },
+    );
   if (hasStatus && target.status === "pending") {
     return NextResponse.json(
       { error: "Unbestätigte Konten können nur über einen Einladungscode aktiviert werden." },
@@ -99,6 +104,11 @@ export async function DELETE(request: Request) {
     .maybeSingle();
   if (!target)
     return NextResponse.json({ error: "Benutzerkonto wurde nicht gefunden." }, { status: 404 });
+  if (target.role === "owner" && actor.role !== "owner")
+    return NextResponse.json(
+      { error: "Co-Owner dürfen das Owner-Konto nicht löschen." },
+      { status: 403 },
+    );
 
   await admin.from("audit_log").insert({
     actor_id: actor.id,
