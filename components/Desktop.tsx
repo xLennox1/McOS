@@ -684,33 +684,33 @@ function LibraryApp({
           </div>
         }
       />
-      <section className="pro-library-banner" aria-label="MC OS PRO">
-        <span className="pro-library-icon">
-          <Sparkles size={17} />
-        </span>
-        <div className="pro-library-copy">
-          <strong>Mehr freischalten mit MC OS PRO</strong>
-          <p>
-            {profile.premium || isStaffRole(profile.role)
-              ? `PRO-Inhalte dieser ${assetType === "mod" ? "Mod-Bibliothek" : "Schematic-Bibliothek"} sind für dein Konto bereits freigeschaltet.`
-              : `Einige ${assetType === "mod" ? "Mods" : "Schematics"} sind PRO-exklusiv. Owner oder Co-Owner schalten PRO nach deiner Anfrage frei.`}
-          </p>
-        </div>
-        <div className="pro-library-actions">
-          <a
-            className="pro-library-discord"
-            href="https://discord.gg/TTGzMyBUu5"
-            target="_blank"
-            rel="noreferrer"
-          >
-            PRO auf Discord <ExternalLink size={13} />
-          </a>
-          <button className="pro-library-support" onClick={onOpenSupport}>
-            {profile.premium || isStaffRole(profile.role) ? "Support öffnen" : "Upgrade anfragen"}
-            <MessageCircle size={13} />
-          </button>
-        </div>
-      </section>
+      {!profile.premium && !isStaffRole(profile.role) && (
+        <section className="pro-library-banner" aria-label="MC OS PRO">
+          <span className="pro-library-icon">
+            <Sparkles size={17} />
+          </span>
+          <div className="pro-library-copy">
+            <strong>Mehr freischalten mit MC OS PRO</strong>
+            <p>
+              Einige {assetType === "mod" ? "Mods" : "Schematics"} sind PRO-exklusiv. Owner oder
+              Co-Owner schalten PRO nach deiner Anfrage frei.
+            </p>
+          </div>
+          <div className="pro-library-actions">
+            <a
+              className="pro-library-discord"
+              href="https://discord.gg/TTGzMyBUu5"
+              target="_blank"
+              rel="noreferrer"
+            >
+              PRO auf Discord <ExternalLink size={13} />
+            </a>
+            <button className="pro-library-support" onClick={onOpenSupport}>
+              Upgrade anfragen <MessageCircle size={13} />
+            </button>
+          </div>
+        </section>
+      )}
       <div className="library-toolbar">
         <label className="library-search">
           <Search size={15} />
