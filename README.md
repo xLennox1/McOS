@@ -1,0 +1,67 @@
+# MC OS
+
+Eine private, browserbasierte Minecraft-Mod-Plattform mit Next.js, Supabase und einem Desktop-ähnlichen Workspace. MC OS ist kein Betriebssystem und kein Minecraft-Launcher.
+
+## Lokal starten
+
+Voraussetzungen: Node.js 20.9 oder neuer, npm und ein Supabase-Projekt.
+
+1. Abhängigkeiten installieren: `npm install`
+2. `.env.example` nach `.env.local` kopieren und die Werte eintragen.
+3. In Supabase unter **SQL Editor** die Migrationen `202610120001_initial_schema.sql`, `202610120002_community_features.sql` und `202610120003_schematics.sql` in dieser Reihenfolge ausführen. Die dritte Migration ergänzt den Inhaltstyp Schematics und erlaubt deren Dateiformate im privaten Speicher.
+4. E-Mail/Passwort als Auth-Anbieter in Supabase aktivieren. Öffentliche Registrierungen in Supabase deaktivieren; Konten werden nur über den geschützten Einladungsweg angelegt.
+5. Für lokale Auth-E-Mails in Supabase **Authentication → URL Configuration** `http://localhost:3000` als Site URL setzen. Erlaube zusätzlich `http://localhost:3000/reset-password`.
+6. `npm run dev` ausführen und `http://localhost:3000` öffnen.
+
+### Umgebungsvariablen
+
+| Variable | Verwendung |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL des Supabase-Projekts |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable/anon key; darf im Browser verfügbar sein |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key; ausschließlich serverseitig, niemals mit `NEXT_PUBLIC_` |
+| `MCOS_SETUP_SECRET` | Langes, zufälliges Geheimnis für die einmalige Erstellung des ersten Admin-Kontos |
+| `NEXT_PUBLIC_SITE_URL` | Origin der Anwendung für Passwort-Reset-Links |
+
+Generiere das Setup-Secret selbst (mindestens 24 Zeichen, z. B. mit einem Passwortmanager). Rufe `/setup` auf, erstelle den ersten Administrator und **entferne danach `MCOS_SETUP_SECRET` aus der lokalen Umgebung und allen Deploy-Umgebungen**. Das Setup kann serverseitig nur einmal erfolgreich sein. Es gibt keine Standard-Zugangsdaten.
+
+## Supabase / Datenmodell
+
+Die erste Migration erstellt Profile/Rollen, einmalig verwendbare Einladungen (nur SHA-256-Hash wird gespeichert), Mods, Versionen, Download-Historie und ein Admin-Audit-Log. Neue Auth-Konten starten als `pending`; nur Einladungseinlösung oder der einmalige Admin-Bootstrap aktiviert ein Profil. Die zweite Migration ergänzt Freundschaftsanfragen, private Einzel- und Support-Chats, Realtime-Nachrichten, internes McOS-Mail, Avatar-Speicher, Profiltext sowie serverseitig verwaltete PRO- und Premium-Mod-Felder. Die dritte Migration ermöglicht Schematics (.schem, .schematic und .litematic) im selben privaten Storage. RLS schützt Nutzerdaten; Nachrichten werden über serverseitig autorisierte Endpunkte gesendet und über Supabase Realtime aktualisiert (mit kurzem Polling als Ausfallschutz). Der Support-Chat ist für jeden aktiven Administrator lesbar. Private Mod-Dateien und Profilbilder liegen in privaten Storage-Buckets.
+
+E-Mail/Passwort-Anmeldung, serverseitige Einladungseinlösung, Admin-Bootstrap, Sperren und endgültiges Löschen von Konten, PRO-Freischaltung, Einstellungen und signierte Download-URLs verwenden Supabase Auth/DB/Storage. McOS-Mail ist ein virtuelles, internes Postfach: Willkommens- und Veröffentlichungsnachrichten werden dort zugestellt und Administratoren können interne Rundnachrichten senden. Es wird **keine externe E-Mail** versendet. Premium-Profilbearbeitung und Premium-Downloads werden auf dem Server geprüft. JARs werden vor Veröffentlichung auf Größe, ZIP-Signatur und Archivverzeichnis geprüft; Schematics auf Größe sowie NBT-/GZIP-Signatur. Das ist **keine Malware- oder Bytecode-Sicherheitsprüfung**: Vor einem öffentlichen Betrieb sollte ein isolierter Virenscanner/Quarantäneprozess für hochgeladene Dateien ergänzt werden.
+
+Einladungscodes werden zufällig generiert, einmalig angezeigt und danach nicht im Klartext gespeichert. Admins können Gültigkeit/Status ansehen, deaktivieren und löschen; nach dem Schließen des Erstellungsdialogs lässt sich ein Code aus Sicherheitsgründen nicht wiederherstellen.
+
+## Vercel und GitHub
+
+1. Lege ein separates GitHub-Repository für **diesen Ordner `McOS`** an und pushe dessen Projektdateien. Prüfe vor dem Commit, dass `.env.local` nicht aufgenommen wird; `.gitignore` schließt Umgebungsdateien aus.
+2. Importiere das GitHub-Repository in Vercel. Framework Preset: **Next.js**; Build Command `npm run build`, Install Command `npm install`.
+3. Trage in Vercel **Project → Settings → Environment Variables** die oben genannten Supabase-Werte und `NEXT_PUBLIC_SITE_URL` mit deiner Produktions-URL ein. `MCOS_SETUP_SECRET` nur für den initialen Admin-Bootstrap setzen und anschließend entfernen. Keine Secrets in GitHub/Vercel Source Code speichern.
+4. Füge die Vercel-Produktionsdomain als Site URL und `https://DEINE-DOMAIN/reset-password` als erlaubte Redirect URL in Supabase ein. Für Vorschau-Deployments deren URL ebenfalls nur dann freigeben, wenn sie gebraucht wird.
+5. Führe alle drei SQL-Migrationen in der angegebenen Reihenfolge auf dem Supabase-Projekt aus. Bei einem bestehenden Projekt, auf dem die ersten beiden Migrationen bereits aktiv sind, führe nur die neue Datei `202610120003_schematics.sql` aus. Dein vorhandenes Administratorkonto bleibt bestehen; lege es nicht erneut über `/setup` an.
+
+Ein GitHub-Remote, Supabase-Projekt und Vercel-Projekt sind in dieser Arbeitsumgebung nicht verbunden. Nach dem Eintragen echter Zugangsdaten und dem Erstellen des GitHub-Repositories muss der erste Vercel-Deploy in der Vercel-Oberfläche gestartet werden.
+
+## Verfügbare Funktionen
+
+- Einladungsgeschützte Kontoerstellung, Login, Abmelden und Passwort-Reset
+- Desktop-Ansicht mit Startmenü, Fenstern, Taskleiste, Uhr, separater Mod- und Schematic-Bibliothek, Profil, Downloads, Einstellungen und Infoseite
+- Fenster lassen sich per Titelleiste verschieben; Layout passt sich an kleinere Bildschirmgrößen an
+- Freundschaftsanfragen per Benutzer-ID, private Direktnachrichten und Support-Chat mit Live-Aktualisierung
+- McOS-Mail mit Willkommensnachrichten, Mod-Veröffentlichungsinfos und internen Admin-Rundnachrichten
+- Servergesteuerte PRO-Freischaltung, PRO-Profilbearbeitung sowie getrennt konfigurierbare öffentliche/PRO-Mod- und Schematic-Veröffentlichungen
+- Serverseitig autorisiertes Admin Center für Einladungen, Kontosperren/-löschung, PRO-Rechte, Support, interne Nachrichten, Mod-Metadaten und Mod-Versionen/Dateien
+- Discord-Link zur MC OS Community
+- Optionale Mod-Vorschaubilder über sichere HTTPS-URLs
+- Private JAR-Ablage, Größen- und Archivprüfung, kurzlebige signierte Downloads sowie Download-Verlauf
+- Eigene Schematic-Bibliothek und Admin-Veröffentlichung für `.schem`, `.schematic` und `.litematic`
+- Supabase-RLS für nutzerseitige Daten und Audit-Einträge administrativer Änderungen
+
+## Prüfungen
+
+`npm run lint`, `npm run typecheck` und `npm run build`
+
+## Community-Features nachrüsten
+
+Wenn die ursprüngliche Datenbank bereits eingerichtet wurde, führe fehlende Migrationen der Reihe nach aus: `202610120002_community_features.sql` für Community-Funktionen und `202610120003_schematics.sql` für Schematics. Ist die zweite Migration schon aktiv, reicht die dritte. Die neuen Migrationen löschen das bestehende Admin-Konto nicht. Danach die lokale App neu starten. Willkommensnachrichten werden bei neu aktivierten Konten automatisch angelegt; beim ersten Öffnen von McOS-Mail erhält auch ein schon bestehendes Konto seine Willkommensnachricht.
