@@ -1075,18 +1075,42 @@ button:disabled {
   letter-spacing: 0.7px;
   white-space: nowrap;
 }
-.pro-library-banner {
+.pro-floating-promo {
+  position: fixed;
+  z-index: 8;
+  right: 18px;
+  bottom: 18px;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: -7px 0 19px;
-  padding: 15px 17px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  width: min(310px, calc(100% - 36px));
+  padding: 15px;
   border: 1px solid rgba(178, 156, 255, 0.32);
-  border-radius: 11px;
+  border-radius: 13px;
   background:
-    radial-gradient(ellipse at 15% 0%, rgba(123, 96, 211, 0.23), transparent 50%),
-    rgba(23, 23, 43, 0.92);
-  box-shadow: 0 8px 24px rgba(3, 5, 14, 0.22);
+    radial-gradient(ellipse at 15% 0%, rgba(123, 96, 211, 0.29), transparent 55%),
+    rgba(16, 19, 34, 0.97);
+  box-shadow: 0 14px 42px rgba(3, 5, 14, 0.52);
+  backdrop-filter: blur(18px);
+}
+.pro-floating-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #b9b4cc;
+  cursor: pointer;
+}
+.pro-floating-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
 }
 .pro-library-icon {
   display: grid;
@@ -1100,8 +1124,9 @@ button:disabled {
   color: #c7b8ff;
 }
 .pro-library-copy {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
+  padding-right: 20px;
 }
 .pro-library-copy strong {
   color: #e1d9ff;
@@ -1115,10 +1140,11 @@ button:disabled {
 }
 .pro-library-actions {
   display: flex;
+  width: 100%;
   flex: 0 0 auto;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
+  justify-content: stretch;
+  gap: 8px;
 }
 .pro-library-actions a,
 .pro-library-actions button {
@@ -1127,6 +1153,7 @@ button:disabled {
   justify-content: center;
   gap: 5px;
   min-height: 29px;
+  flex: 1;
   padding: 0 9px;
   border: 1px solid rgba(178, 156, 255, 0.2);
   border-radius: 6px;
@@ -1271,6 +1298,22 @@ button:disabled {
   background: rgba(5, 10, 18, 0.48);
   color: #c1d3dd;
   font-size: 8px;
+}
+.mod-pro-badge {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border: 1px solid rgba(192, 166, 255, 0.34);
+  border-radius: 5px;
+  background: rgba(29, 21, 49, 0.88);
+  color: #d6c8ff;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.45px;
 }
 .mod-art-index {
   position: absolute;
@@ -1429,6 +1472,24 @@ button:disabled {
   gap: 15px;
   padding: 14px 0;
   border-bottom: 1px solid var(--line);
+}
+.version-row-locked > div {
+  opacity: 0.78;
+}
+.version-access-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 7px;
+  color: #c9b8ff;
+  font-size: 9px;
+  font-weight: 600;
+}
+.version-row-locked .download-button {
+  border-color: rgba(192, 166, 255, 0.25);
+  background: rgba(178, 156, 255, 0.09);
+  color: #c4b6eb;
+  cursor: not-allowed;
 }
 .version-row > div {
   min-width: 0;
@@ -3197,23 +3258,14 @@ button:disabled {
   .form-row {
     grid-template-columns: 1fr;
   }
-  .pro-library-banner {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 9px;
-    padding: 11px;
+  .pro-floating-promo {
+    right: 10px;
+    bottom: 10px;
+    width: min(310px, calc(100% - 20px));
+    padding: 12px;
   }
   .pro-library-copy {
     flex-basis: calc(100% - 44px);
-  }
-  .pro-library-actions {
-    width: 100%;
-    justify-content: flex-start;
-    padding-left: 43px;
-  }
-  .pro-library-actions a,
-  .pro-library-actions button {
-    flex: 1;
   }
   .about-hero {
     align-items: flex-start;

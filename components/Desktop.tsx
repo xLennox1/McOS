@@ -620,18 +620,39 @@ function LibraryApp({
   const [selected, setSelected] = useState<Mod | null>(null);
   const [error, setError] = useState("");
   const [busyVersion, setBusyVersion] = useState("");
+  const [showProPromo, setShowProPromo] = useState(true);
+
+  const refreshMods = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    params.set("type", assetType);
+    try {
+      const result = await requestJson<Mod[]>(`/api/mods?${params}`, { cache: "no-store" });
+      setMods(result);
+      setError("");
+    } catch (reason) {
+      setError((reason as Error).message);
+    }
+  }, [search, assetType]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams();
-      if (search) params.set("q", search);
-      params.set("type", assetType);
-      requestJson<Mod[]>(`/api/mods?${params}`)
-        .then(setMods)
-        .catch((reason: Error) => setError(reason.message));
-    }, 180);
-    return () => window.clearTimeout(timer);
-  }, [search, assetType]);
+    const timer = window.setTimeout(() => void refreshMods(), 180);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshMods();
+    };
+    const refreshOnPublish = () => void refreshMods();
+    const interval = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("mcos:mods-updated", refreshOnPublish);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("mcos:mods-updated", refreshOnPublish);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refreshMods]);
 
   const categories = Array.from(new Set(mods.map((mod) => mod.category)));
   const minecraftVersions = Array.from(
@@ -648,7 +669,11 @@ function LibraryApp({
               (!version || item.minecraft_version === version),
           ),
         }))
-        .filter((mod) => mod.mod_versions.length > 0 && (!category || mod.category === category)),
+        .filter(
+          (mod) =>
+            ((!loader && !version) || mod.mod_versions.length > 0) &&
+            (!category || mod.category === category),
+        ),
     [mods, loader, version, category],
   );
   async function download(versionId: string) {
@@ -684,16 +709,24 @@ function LibraryApp({
           </div>
         }
       />
-      {!profile.premium && !isStaffRole(profile.role) && (
-        <section className="pro-library-banner" aria-label="MC OS PRO">
+      {!profile.premium && !isStaffRole(profile.role) && showProPromo && (
+        <aside className="pro-floating-promo" aria-label="MC OS PRO Upgrade">
+          <button
+            className="pro-floating-close"
+            type="button"
+            onClick={() => setShowProPromo(false)}
+            aria-label="PRO-Werbung schließen"
+          >
+            <X size={14} />
+          </button>
           <span className="pro-library-icon">
             <Sparkles size={17} />
           </span>
           <div className="pro-library-copy">
-            <strong>Mehr freischalten mit MC OS PRO</strong>
+            <strong>Mehr mit MC OS PRO</strong>
             <p>
-              Einige {assetType === "mod" ? "Mods" : "Schematics"} sind PRO-exklusiv. Owner oder
-              Co-Owner schalten PRO nach deiner Anfrage frei.
+              PRO-exklusive Inhalte sind sichtbar und mit einem Schloss markiert. PRO wird nach
+              deiner Anfrage durch Owner oder Co-Owner freigeschaltet.
             </p>
           </div>
           <div className="pro-library-actions">
@@ -701,15 +734,15 @@ function LibraryApp({
               className="pro-library-discord"
               href="https://discord.gg/TTGzMyBUu5"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
-              PRO auf Discord <ExternalLink size={13} />
+              Discord <ExternalLink size={13} />
             </a>
             <button className="pro-library-support" onClick={onOpenSupport}>
-              Upgrade anfragen <MessageCircle size={13} />
+              Support-Chat <MessageCircle size={13} />
             </button>
           </div>
-        </section>
+        </aside>
       )}
       <div className="library-toolbar">
         <label className="library-search">
@@ -778,43 +811,51 @@ function LibraryApp({
         </div>
       ) : (
         <div className="mod-grid">
-          {visibleMods.map((mod, index) => (
-            <button className="mod-card" key={mod.id} onClick={() => setSelected(mod)}>
-              <div className={`mod-art mod-art-${index % 5}`}>
-                {mod.image_url ? (
-                  <div
-                    className="mod-art-image"
-                    role="img"
-                    aria-label={`${mod.name} Vorschaubild`}
-                    style={{ backgroundImage: `url(${JSON.stringify(mod.image_url)})` }}
-                  />
-                ) : (
-                  <div className="mod-art-glow">
-                    {assetType === "mod" ? <Blocks size={28} /> : <FileArchive size={28} />}
+          {visibleMods.map((mod, index) => {
+            const hasProRelease = mod.mod_versions.some((item) => item.premium_only);
+            return (
+              <button className="mod-card" key={mod.id} onClick={() => setSelected(mod)}>
+                <div className={`mod-art mod-art-${index % 5}`}>
+                  {mod.image_url ? (
+                    <div
+                      className="mod-art-image"
+                      role="img"
+                      aria-label={`${mod.name} Vorschaubild`}
+                      style={{ backgroundImage: `url(${JSON.stringify(mod.image_url)})` }}
+                    />
+                  ) : (
+                    <div className="mod-art-glow">
+                      {assetType === "mod" ? <Blocks size={28} /> : <FileArchive size={28} />}
+                    </div>
+                  )}
+                  <span className="mod-category">{mod.category}</span>
+                  {hasProRelease && (
+                    <span className="mod-pro-badge">
+                      <LockKeyhole size={11} /> PRO
+                    </span>
+                  )}
+                  <span className="mod-art-index">MC / {String(index + 1).padStart(2, "0")}</span>
+                </div>
+                <div className="mod-card-content">
+                  <div className="mod-card-title">
+                    <h3>{mod.name}</h3>
+                    <ArrowRight size={15} />
                   </div>
-                )}
-                <span className="mod-category">{mod.category}</span>
-                <span className="mod-art-index">MC / {String(index + 1).padStart(2, "0")}</span>
-              </div>
-              <div className="mod-card-content">
-                <div className="mod-card-title">
-                  <h3>{mod.name}</h3>
-                  <ArrowRight size={15} />
+                  <p>{mod.description || "Eine neue Ergänzung für dein Minecraft-Erlebnis."}</p>
+                  <div className="mod-card-meta">
+                    <span>{mod.mod_versions[0]?.minecraft_version ?? "Noch keine Version"}</span>
+                    <span>
+                      {mod.mod_versions.length === 0
+                        ? "Noch nicht veröffentlicht"
+                        : assetType === "mod"
+                          ? (mod.mod_versions[0]?.loaders?.join(" · ") ?? "—")
+                          : "Schematics-Datei"}
+                    </span>
+                  </div>
                 </div>
-                <p>{mod.description || "Eine neue Ergänzung für dein Minecraft-Erlebnis."}</p>
-                <div className="mod-card-meta">
-                  <span>{mod.mod_versions[0]?.minecraft_version ?? "—"}</span>
-                  <span>
-                    {assetType === "mod"
-                      ? (mod.mod_versions[0]?.loaders?.join(" · ") ?? "—")
-                      : mod.mod_versions[0]
-                        ? "Schematics-Datei"
-                        : "—"}
-                  </span>
-                </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
       {selected && (
@@ -846,7 +887,14 @@ function LibraryApp({
             <div className="detail-versions">
               <span className="detail-label">VERÖFFENTLICHUNGEN</span>
               {selected.mod_versions.map((item) => (
-                <div className="version-row" key={item.id}>
+                <div
+                  className={`version-row ${
+                    item.premium_only && !profile.premium && !isStaffRole(profile.role)
+                      ? "version-row-locked"
+                      : ""
+                  }`}
+                  key={item.id}
+                >
                   <div>
                     <strong>v{item.version}</strong>
                     <small>
@@ -858,6 +906,11 @@ function LibraryApp({
                       {formatSize(item.file_size)}
                       {item.premium_only ? " · PRO" : ""}
                     </small>
+                    {item.premium_only && (
+                      <span className="version-access-badge">
+                        <LockKeyhole size={11} /> Nur für MC OS PRO
+                      </span>
+                    )}
                     <p>{item.changelog}</p>
                   </div>
                   <button
@@ -866,6 +919,11 @@ function LibraryApp({
                     disabled={
                       busyVersion === item.id ||
                       (item.premium_only && !profile.premium && !isStaffRole(profile.role))
+                    }
+                    title={
+                      item.premium_only && !profile.premium && !isStaffRole(profile.role)
+                        ? "Diese Version kann nur mit MC OS PRO heruntergeladen werden."
+                        : undefined
                     }
                   >
                     {busyVersion === item.id ? (
@@ -1571,6 +1629,7 @@ function AdminApp({ profile }: { profile: Profile }) {
             ? "Mod wurde angelegt und die erste Version veröffentlicht."
             : "Schematic wurde angelegt und veröffentlicht.",
         );
+        window.dispatchEvent(new Event("mcos:mods-updated"));
         await load();
       } catch (reason) {
         setError(
@@ -1649,6 +1708,7 @@ function AdminApp({ profile }: { profile: Profile }) {
           ? "Mod-Version wurde veröffentlicht."
           : "Schematic wurde veröffentlicht.",
       );
+      window.dispatchEvent(new Event("mcos:mods-updated"));
       await load();
     } catch (reason) {
       setError((reason as Error).message);
