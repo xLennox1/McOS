@@ -1248,53 +1248,157 @@ function AboutApp() {
   return (
     <div className="app-content">
       <AppHeading
-        eyebrow="DAS PROJEKT"
+        eyebrow="PLATTFORM / ÜBERBLICK"
         title="Über MC OS"
-        subtitle="Ein privater Ort für sorgfältig ausgewählte Minecraft-Mods."
+        subtitle="Was MC OS ist, wie die Plattform funktioniert und was du hier findest."
       />
       <div className="about-hero">
         <div className="about-emblem">
           <span>MC</span>
           <i>OS</i>
         </div>
-        <div>
+        <div className="about-hero-copy">
           <div className="app-eyebrow">YOUR MOD SPACE</div>
           <h3>
-            Mods. Dein Setup.
+            Dein privater Workspace
             <br />
-            <span>Deine Welt.</span>
+            <span>für Minecraft-Inhalte.</span>
           </h3>
+          <p>
+            Bibliothek, Community und deine Downloads – übersichtlich an einem Ort und direkt im
+            Browser erreichbar.
+          </p>
         </div>
       </div>
       <p className="about-copy">
-        MC OS ist eine browserbasierte Mod-Plattform — kein Betriebssystem und kein Launcher. Hier
-        findest du ausgewählte Mods, Versionsinfos und deine persönlichen Downloads an einem Ort.
+        <strong>
+          MC OS ist eine private, browserbasierte Plattform für Minecraft-Mods und Schematics.
+        </strong>{" "}
+        Der Windows-inspirierte Desktop ist die Benutzeroberfläche einer Website: MC OS ist weder
+        ein echtes Betriebssystem noch ein Minecraft-Launcher und installiert keine Dateien
+        automatisch in deinem Spiel. Du lädst veröffentlichte Dateien herunter und installierst sie
+        selbst in deiner Minecraft-Umgebung.
       </p>
+      <h3 className="about-section-title">Was du mit MC OS machen kannst</h3>
       <div className="about-points">
         <div>
-          <ShieldCheck size={17} />
+          <Blocks size={18} />
           <span>
-            <strong>Privater Zugang</strong>
-            <small>Nur mit persönlicher Einladung</small>
+            <strong>Mod-Bibliothek</strong>
+            <small>Mods suchen und nach Version, Loader und Kategorie filtern.</small>
           </span>
         </div>
         <div>
-          <HardDriveDownload size={17} />
+          <FileArchive size={18} />
           <span>
-            <strong>Echte Downloads</strong>
-            <small>Geschützter, privater Dateispeicher</small>
+            <strong>Schematic-Bibliothek</strong>
+            <small>Baupläne entdecken und unterstützte Dateien herunterladen.</small>
           </span>
         </div>
         <div>
           <Gamepad2 size={17} />
           <span>
-            <strong>Für Minecraft</strong>
-            <small>Versionen und Loader auf einen Blick</small>
+            <strong>Versionsinfos</strong>
+            <small>Minecraft-Version, Loader, Release-Notizen und Dateigröße ansehen.</small>
+          </span>
+        </div>
+        <div>
+          <Users size={18} />
+          <span>
+            <strong>Community-Chat</strong>
+            <small>Freunde per Benutzer-ID hinzufügen und privat chatten.</small>
+          </span>
+        </div>
+        <div>
+          <Mail size={18} />
+          <span>
+            <strong>McOS-Mail</strong>
+            <small>Interne Systemnachrichten zu Konto und neuen Veröffentlichungen.</small>
+          </span>
+        </div>
+        <div>
+          <Settings2 size={18} />
+          <span>
+            <strong>Dein Desktop</strong>
+            <small>Fenster verschieben und Akzentfarbe sowie Hintergrund anpassen.</small>
           </span>
         </div>
       </div>
+      <div className="about-info-grid">
+        <section className="about-info-card">
+          <span className="about-info-icon">
+            <ShieldCheck size={17} />
+          </span>
+          <div>
+            <h4>Zugang und Kontoschutz</h4>
+            <p>
+              Der Zugang ist geschlossen und erfolgt über Einladung. Anmeldung, Berechtigungen und
+              Download-Freigaben werden serverseitig geprüft. Private Dateien sind nicht als
+              öffentliche Links abgelegt.
+            </p>
+          </div>
+        </section>
+        <section className="about-info-card">
+          <span className="about-info-icon">
+            <Sparkles size={17} />
+          </span>
+          <div>
+            <h4>PRO-Inhalte und Freischaltung</h4>
+            <p>
+              Veröffentlichungen können für alle Mitglieder oder nur für PRO freigegeben sein. PRO
+              wird manuell durch Owner oder Co-Owner erteilt; MC OS bietet derzeit keinen
+              automatischen Kauf oder Zahlungsprozess.
+            </p>
+          </div>
+        </section>
+        <section className="about-info-card">
+          <span className="about-info-icon">
+            <MessageCircle size={17} />
+          </span>
+          <div>
+            <h4>Support und Anrufe</h4>
+            <p>
+              Support-Anfragen werden in MC OS von Ownern und Co-Ownern beantwortet. Audio- und
+              Videoanrufe sind für direkte Freundes-Chats verfügbar und öffnen einen externen
+              Jitsi-Raum; im Support-Chat gibt es keine Anruffunktion.
+            </p>
+          </div>
+        </section>
+        <section className="about-info-card">
+          <span className="about-info-icon">
+            <UserRound size={17} />
+          </span>
+          <div>
+            <h4>Profil und Einstellungen</h4>
+            <p>
+              Du kannst deine Kontoinformationen und persönlichen Desktop-Einstellungen ansehen.
+              Profilbearbeitung und Profilbild sind PRO-Funktionen. Dein Download-Verlauf ist an
+              dein Konto gebunden.
+            </p>
+          </div>
+        </section>
+      </div>
+      <section className="about-admin-note">
+        <div className="about-info-icon">
+          <HardDriveDownload size={17} />
+        </div>
+        <div>
+          <h4>Veröffentlichungen und Dateisicherheit</h4>
+          <p>
+            Nur Owner und Co-Owner können Mods, Schematics und neue Versionen veröffentlichen.
+            Dateien werden in privatem Speicher abgelegt und vor der Freigabe auf grundlegende
+            Dateiformat-Merkmale geprüft. Das ersetzt keine vollständige Malware-Prüfung. Prüfe
+            heruntergeladene Dateien verantwortungsvoll und verwende sie nur mit passenden
+            Minecraft-Versionen und Loadern.
+          </p>
+        </div>
+      </section>
+      <p className="about-footnote">
+        MC OS ist ein unabhängiges Community-Projekt. Minecraft und die genannten Loader sind Marken
+        ihrer jeweiligen Rechteinhaber; MC OS ist kein offizielles Mojang- oder Microsoft-Produkt.
+      </p>
       <div className="about-version">
-        MC OS <span>·</span> PRIVATE MOD PLATFORM <span>·</span> 0.1.0
+        MC OS <span>·</span> PRIVATE MOD PLATFORM <span>·</span> BROWSER-WORKSPACE
       </div>
     </div>
   );

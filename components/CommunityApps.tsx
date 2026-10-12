@@ -243,6 +243,7 @@ export function ChatApp({
       : currentSupport
         ? "MC OS Support"
         : "Wähle einen Chat");
+  const canCall = !supportOnly && Boolean(activeFriend);
   async function copyUserId() {
     try {
       await navigator.clipboard.writeText(profile.id);
@@ -400,6 +401,8 @@ export function ChatApp({
               sendMessage={sendMessage}
               busy={busy}
               ownId={profile.id}
+              canCall={false}
+              supportOnly
             />
           </div>
         </div>
@@ -437,6 +440,8 @@ export function ChatApp({
               sendMessage={sendMessage}
               busy={busy}
               ownId={profile.id}
+              canCall={canCall}
+              supportOnly={false}
             />
           </div>
         </>
@@ -469,6 +474,8 @@ function ChatPane({
   sendMessage,
   busy,
   ownId,
+  canCall,
+  supportOnly,
 }: {
   title: string;
   selected: string;
@@ -478,6 +485,8 @@ function ChatPane({
   sendMessage: (event: FormEvent) => void;
   busy: boolean;
   ownId: string;
+  canCall: boolean;
+  supportOnly: boolean;
 }) {
   function openCall(video: boolean) {
     const room = `MCOS-${selected.replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -499,28 +508,32 @@ function ChatPane({
             </span>
             <div>
               <strong>{title}</strong>
-              <small>Live-Chat · Anrufe über Jitsi</small>
+              <small>
+                {canCall ? "Live-Chat · Audio- und Videoanruf verfügbar" : "Support-Chat"}
+              </small>
             </div>
-            <div className="chat-call-actions">
-              <button
-                type="button"
-                onClick={() => openCall(false)}
-                aria-label="Sprachanruf über Jitsi starten"
-                title="Sprachanruf"
-              >
-                <Phone size={15} />
-                <span>Audio</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openCall(true)}
-                aria-label="Videoanruf über Jitsi starten"
-                title="Videoanruf"
-              >
-                <Video size={15} />
-                <span>Video</span>
-              </button>
-            </div>
+            {canCall && (
+              <div className="chat-call-actions">
+                <button
+                  type="button"
+                  onClick={() => openCall(false)}
+                  aria-label="Sprachanruf über Jitsi starten"
+                  title="Sprachanruf"
+                >
+                  <Phone size={15} />
+                  <span>Audio</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openCall(true)}
+                  aria-label="Videoanruf über Jitsi starten"
+                  title="Videoanruf"
+                >
+                  <Video size={15} />
+                  <span>Video</span>
+                </button>
+              </div>
+            )}
           </header>
           <div className="chat-messages" aria-live="polite">
             {messages.length === 0 && (
@@ -566,20 +579,24 @@ function ChatPane({
           <span className="chat-empty-icon">
             <MessageCircle size={26} />
           </span>
-          <strong>Audio- und Videoanrufe</strong>
+          <strong>{supportOnly ? "Support-Inbox" : "Deine Chats und Anrufe"}</strong>
           <span>
-            Wähle links einen Freund oder Support-Chat. Dort kannst du direkt einen Anruf starten.
+            {supportOnly
+              ? "Neue Support-Anfragen erscheinen hier. Der Support wird ausschließlich per Nachricht bearbeitet."
+              : "Wähle einen Freund für einen Audio- oder Videoanruf. Der Support-Chat ist nur für Nachrichten."}
           </span>
-          <div className="chat-call-actions chat-empty-call-actions">
-            <button type="button" disabled aria-label="Sprachanruf: erst einen Chat auswählen">
-              <Phone size={15} />
-              <span>Audio</span>
-            </button>
-            <button type="button" disabled aria-label="Videoanruf: erst einen Chat auswählen">
-              <Video size={15} />
-              <span>Video</span>
-            </button>
-          </div>
+          {!supportOnly && (
+            <div className="chat-call-actions chat-empty-call-actions">
+              <button type="button" disabled aria-label="Sprachanruf: erst einen Chat auswählen">
+                <Phone size={15} />
+                <span>Audio</span>
+              </button>
+              <button type="button" disabled aria-label="Videoanruf: erst einen Chat auswählen">
+                <Video size={15} />
+                <span>Video</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>
