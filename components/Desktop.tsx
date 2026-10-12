@@ -158,6 +158,7 @@ export function Desktop({ profile }: { profile: Profile }) {
   const [clock, setClock] = useState(new Date());
   const [search, setSearch] = useState("");
   const [supportRequest, setSupportRequest] = useState(0);
+  const [showProPromo, setShowProPromo] = useState(true);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(new Date()), 1000);
@@ -225,6 +226,11 @@ export function Desktop({ profile }: { profile: Profile }) {
     await supabase.auth.signOut();
     router.replace("/login");
     router.refresh();
+  }
+
+  function openSupportChat() {
+    openApp("chat");
+    if (!isStaffRole(profile.role)) setSupportRequest((count) => count + 1);
   }
 
   return (
@@ -347,26 +353,8 @@ export function Desktop({ profile }: { profile: Profile }) {
                 </div>
               </header>
               <div className="window-body">
-                {item.id === "library" && (
-                  <LibraryApp
-                    profile={profile}
-                    assetType="mod"
-                    onOpenSupport={() => {
-                      openApp("chat");
-                      if (!isStaffRole(profile.role)) setSupportRequest((count) => count + 1);
-                    }}
-                  />
-                )}
-                {item.id === "schematics" && (
-                  <LibraryApp
-                    profile={profile}
-                    assetType="schematic"
-                    onOpenSupport={() => {
-                      openApp("chat");
-                      if (!isStaffRole(profile.role)) setSupportRequest((count) => count + 1);
-                    }}
-                  />
-                )}
+                {item.id === "library" && <LibraryApp profile={profile} assetType="mod" />}
+                {item.id === "schematics" && <LibraryApp profile={profile} assetType="schematic" />}
                 {item.id === "profile" && <ProfileApp profile={profile} />}
                 {item.id === "downloads" && <DownloadsApp />}
                 {item.id === "settings" && <SettingsApp profile={profile} />}
@@ -380,6 +368,42 @@ export function Desktop({ profile }: { profile: Profile }) {
             </section>
           );
         })}
+
+      {!profile.premium && !isStaffRole(profile.role) && showProPromo && (
+        <aside className="pro-floating-promo" aria-label="MC OS PRO Upgrade">
+          <button
+            className="pro-floating-close"
+            type="button"
+            onClick={() => setShowProPromo(false)}
+            aria-label="PRO-Werbung schließen"
+          >
+            <X size={14} />
+          </button>
+          <span className="pro-library-icon">
+            <Sparkles size={17} />
+          </span>
+          <div className="pro-library-copy">
+            <strong>Mehr mit MC OS PRO</strong>
+            <p>
+              Entdecke PRO-exklusive Mods und Schematics. Sieh sie dir schon jetzt in den
+              Bibliotheken an und lass dich zum Zugang beraten.
+            </p>
+          </div>
+          <div className="pro-library-actions">
+            <button className="pro-library-support" onClick={openSupportChat}>
+              Support-Chat <MessageCircle size={13} />
+            </button>
+            <a
+              className="pro-library-discord"
+              href="https://discord.gg/TTGzMyBUu5"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord <ExternalLink size={13} />
+            </a>
+          </div>
+        </aside>
+      )}
 
       {startOpen && (
         <div className="start-menu">
@@ -602,15 +626,7 @@ function AppHeading({
   );
 }
 
-function LibraryApp({
-  profile,
-  assetType,
-  onOpenSupport,
-}: {
-  profile: Profile;
-  assetType: "mod" | "schematic";
-  onOpenSupport: () => void;
-}) {
+function LibraryApp({ profile, assetType }: { profile: Profile; assetType: "mod" | "schematic" }) {
   const [mods, setMods] = useState<Mod[]>([]);
   const [search, setSearch] = useState("");
   const [loader, setLoader] = useState("");
@@ -619,8 +635,6 @@ function LibraryApp({
   const [selected, setSelected] = useState<Mod | null>(null);
   const [error, setError] = useState("");
   const [busyVersion, setBusyVersion] = useState("");
-  const [showProPromo, setShowProPromo] = useState(true);
-
   const refreshMods = useCallback(async () => {
     const params = new URLSearchParams();
     if (search) params.set("q", search);
@@ -711,41 +725,6 @@ function LibraryApp({
           </div>
         }
       />
-      {!profile.premium && !isStaffRole(profile.role) && showProPromo && (
-        <aside className="pro-floating-promo" aria-label="MC OS PRO Upgrade">
-          <button
-            className="pro-floating-close"
-            type="button"
-            onClick={() => setShowProPromo(false)}
-            aria-label="PRO-Werbung schließen"
-          >
-            <X size={14} />
-          </button>
-          <span className="pro-library-icon">
-            <Sparkles size={17} />
-          </span>
-          <div className="pro-library-copy">
-            <strong>Mehr mit MC OS PRO</strong>
-            <p>
-              PRO-exklusive Inhalte sind sichtbar und mit einem Schloss markiert. PRO wird nach
-              deiner Anfrage durch Owner oder Co-Owner freigeschaltet.
-            </p>
-          </div>
-          <div className="pro-library-actions">
-            <a
-              className="pro-library-discord"
-              href="https://discord.gg/TTGzMyBUu5"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Discord <ExternalLink size={13} />
-            </a>
-            <button className="pro-library-support" onClick={onOpenSupport}>
-              Support-Chat <MessageCircle size={13} />
-            </button>
-          </div>
-        </aside>
-      )}
       <div className="library-toolbar">
         <label className="library-search">
           <Search size={15} />

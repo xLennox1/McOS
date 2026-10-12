@@ -1076,10 +1076,10 @@ button:disabled {
   white-space: nowrap;
 }
 .pro-floating-promo {
-  position: fixed;
-  z-index: 8;
-  right: 18px;
-  bottom: 18px;
+  position: absolute;
+  z-index: 45;
+  right: 20px;
+  bottom: 68px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -3285,8 +3285,8 @@ button:disabled {
   }
   .pro-floating-promo {
     right: 10px;
-    bottom: 10px;
-    width: min(310px, calc(100% - 20px));
+    bottom: 58px;
+    width: min(340px, calc(100% - 20px));
     padding: 12px;
   }
   .pro-library-copy {
