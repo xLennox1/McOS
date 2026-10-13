@@ -10,7 +10,7 @@ export async function GET() {
     .from("mailbox_messages")
     .select("id")
     .eq("recipient_id", profile.id)
-    .eq("subject", "Willkommen bei MC OS")
+    .eq("subject", "Willkommen bei XLXOS")
     .limit(1)
     .maybeSingle();
   if (welcomeReadError)
@@ -21,8 +21,8 @@ export async function GET() {
   if (!welcome) {
     const { error: welcomeInsertError } = await admin.from("mailbox_messages").insert({
       recipient_id: profile.id,
-      sender_name: "MC OS",
-      subject: "Willkommen bei MC OS",
+      sender_name: "XLXOS",
+      subject: "Willkommen bei XLXOS",
       body: "Dein Zugang ist eingerichtet. Entdecke die Mod-Bibliothek, richte deinen Desktop ein und finde andere Mitglieder über ihre Benutzer-ID.",
     });
     if (welcomeInsertError)
@@ -38,7 +38,7 @@ export async function GET() {
     .order("created_at", { ascending: false })
     .limit(200);
   if (error)
-    return NextResponse.json({ error: "McOS-Mail konnte nicht geladen werden." }, { status: 500 });
+    return NextResponse.json({ error: "XLXOS-Mail konnte nicht geladen werden." }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 

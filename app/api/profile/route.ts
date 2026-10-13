@@ -39,7 +39,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
   if (!current || (!current.premium && !isStaffRole(profile.role)))
     return NextResponse.json(
-      { error: "Profilbearbeitung ist nur mit MC OS PRO verfügbar." },
+      { error: "Profilbearbeitung ist nur mit XLXOS PRO verfügbar." },
       { status: 403 },
     );
 
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!current || (!current.premium && !isStaffRole(profile.role)))
     return NextResponse.json(
-      { error: "Profilbilder sind nur mit MC OS PRO verfügbar." },
+      { error: "Profilbilder sind nur mit XLXOS PRO verfügbar." },
       { status: 403 },
     );
 

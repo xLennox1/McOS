@@ -256,12 +256,12 @@ async function notifyPublication(
     .select("id")
     .eq("status", "active");
   if (profilesError)
-    return "Die Veröffentlichung ist aktiv, aber McOS-Mail konnte nicht geladen werden.";
+    return "Die Veröffentlichung ist aktiv, aber XLXOS-Mail konnte nicht geladen werden.";
   if (!profiles?.length) return undefined;
   const { error } = await admin.from("mailbox_messages").insert(
     profiles.map((recipient) => ({
       recipient_id: recipient.id,
-      sender_name: "MC OS",
+      sender_name: "XLXOS",
       subject:
         `${assetType === "mod" ? "Neue Mod-Version" : assetType === "resourcepack" ? "Neues Resourcepack" : "Neue Schematic"}: ${modName}`.slice(
           0,
@@ -281,6 +281,6 @@ async function notifyPublication(
     })),
   );
   return error
-    ? "Die Veröffentlichung ist aktiv, aber die McOS-Mail-Benachrichtigung ist fehlgeschlagen."
+    ? "Die Veröffentlichung ist aktiv, aber die XLXOS-Mail-Benachrichtigung ist fehlgeschlagen."
     : undefined;
 }

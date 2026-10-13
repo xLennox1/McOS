@@ -55,7 +55,7 @@ begin
   insert into public.mailbox_messages (recipient_id, sender_name, subject, body)
   select
     profiles.id,
-    'MC OS',
+    'XLXOS',
     left(
       case when content_type = 'schematic' then 'Neue Vorlage: ' else 'Neue Mod-Version: ' end
         || content_name,

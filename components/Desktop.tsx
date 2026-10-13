@@ -119,7 +119,7 @@ const apps: { id: AppId; title: string; subtitle: string; icon: typeof Gamepad2;
     },
     {
       id: "about",
-      title: "Über MC OS",
+      title: "Über XLXOS",
       subtitle: "Ein Zuhause für deine Mods",
       icon: CircleHelp,
       color: "#83baff",
@@ -134,13 +134,13 @@ const apps: { id: AppId; title: string; subtitle: string; icon: typeof Gamepad2;
     {
       id: "chat",
       title: "Community-Chat",
-      subtitle: "Freunde und MC OS Support",
+      subtitle: "Freunde und XLXOS Support",
       icon: MessageCircle,
       color: "#8cb7ff",
     },
     {
       id: "mail",
-      title: "McOS-Mail",
+      title: "XLXOS-Mail",
       subtitle: "Dein internes System-Postfach",
       icon: Mail,
       color: "#f0bb72",
@@ -351,7 +351,7 @@ export function Desktop({ profile }: { profile: Profile }) {
                 {(item.id === "library" ||
                   item.id === "schematics" ||
                   item.id === "resourcepacks") && (
-                  <span className="window-title-hint">MC OS / LIBRARY</span>
+                  <span className="window-title-hint">XLXOS / LIBRARY</span>
                 )}
                 <div className="window-controls">
                   <button
@@ -396,7 +396,7 @@ export function Desktop({ profile }: { profile: Profile }) {
         })}
 
       {!profile.premium && !isStaffRole(profile.role) && showProPromo && (
-        <aside className="pro-floating-promo" aria-label="MC OS PRO Upgrade">
+        <aside className="pro-floating-promo" aria-label="XLXOS PRO Upgrade">
           <button
             className="pro-floating-close"
             type="button"
@@ -409,7 +409,7 @@ export function Desktop({ profile }: { profile: Profile }) {
             <Sparkles size={17} />
           </span>
           <div className="pro-library-copy">
-            <strong>Mehr mit MC OS PRO</strong>
+            <strong>Mehr mit XLXOS PRO</strong>
             <p>
               Entdecke PRO-exklusive Mods, Schematics und Resourcepacks. Sieh sie dir schon jetzt in
               den Bibliotheken an und lass dich zum Zugang beraten.
@@ -442,7 +442,7 @@ export function Desktop({ profile }: { profile: Profile }) {
                   ? "Owner"
                   : profile.role === "co_owner"
                     ? "Co-Owner"
-                    : "MC OS Nutzer"}
+                    : "XLXOS Nutzer"}
               </small>
             </div>
             <button onClick={signOut} aria-label="Abmelden">
@@ -475,7 +475,7 @@ export function Desktop({ profile }: { profile: Profile }) {
           </div>
           <div className="start-footer">
             <span>
-              <Sparkles size={13} /> MC OS · PRIVATE MOD SPACE
+              <Sparkles size={13} /> XLXOS · PRIVATE MOD SPACE
             </span>
             <button onClick={signOut} aria-label="Abmelden">
               <LogOut size={15} />
@@ -623,14 +623,14 @@ export function Desktop({ profile }: { profile: Profile }) {
         href="https://discord.gg/TTGzMyBUu5"
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="MC OS Discord-Server öffnen"
+        aria-label="XLXOS Discord-Server öffnen"
       >
         <MessageCircle size={17} />
         <span>Discord</span>
         <ExternalLink size={12} />
       </a>
       <div className="desktop-copyright">
-        MC OS <span>·</span> NOT AN OPERATING SYSTEM. JUST YOUR MOD SPACE.
+        XLXOS <span>·</span> NOT AN OPERATING SYSTEM. JUST YOUR MOD SPACE.
       </div>
     </main>
   );
@@ -697,13 +697,13 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: Asset
     const refreshOnPublish = () => void refreshMods();
     const interval = window.setInterval(refreshWhenVisible, 30_000);
     window.addEventListener("focus", refreshWhenVisible);
-    window.addEventListener("mcos:mods-updated", refreshOnPublish);
+    window.addEventListener("xlxos:mods-updated", refreshOnPublish);
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       window.clearTimeout(timer);
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshWhenVisible);
-      window.removeEventListener("mcos:mods-updated", refreshOnPublish);
+      window.removeEventListener("xlxos:mods-updated", refreshOnPublish);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [refreshMods]);
@@ -939,7 +939,7 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: Asset
                   : selected.asset_type === "resourcepack"
                     ? "RESOURCEPACK"
                     : selected.category.toUpperCase()}{" "}
-                / MC OS
+                / XLXOS
               </span>
               <h2>{selected.name}</h2>
               <p className="mod-detail-description">
@@ -969,7 +969,7 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: Asset
                       </small>
                       {item.premium_only && (
                         <span className="version-access-badge">
-                          <LockKeyhole size={11} /> Nur für MC OS PRO
+                          <LockKeyhole size={11} /> Nur für XLXOS PRO
                         </span>
                       )}
                       <p>{item.changelog}</p>
@@ -983,7 +983,7 @@ function LibraryApp({ profile, assetType }: { profile: Profile; assetType: Asset
                       }
                       title={
                         item.premium_only && !profile.premium && !isStaffRole(profile.role)
-                          ? "Diese Version kann nur mit MC OS PRO heruntergeladen werden."
+                          ? "Diese Version kann nur mit XLXOS PRO heruntergeladen werden."
                           : undefined
                       }
                     >
@@ -1096,7 +1096,7 @@ function ProfileApp({ profile }: { profile: Profile }) {
       <AppHeading
         eyebrow="DEIN KONTO"
         title="Mein Profil"
-        subtitle="Dein persönlicher Zugang zu MC OS."
+        subtitle="Dein persönlicher Zugang zu XLXOS."
       />
       <div className="profile-card">
         <div className="profile-avatar">
@@ -1121,12 +1121,12 @@ function ProfileApp({ profile }: { profile: Profile }) {
                 ? "Co-Owner"
                 : "Owner"
               : profile.premium
-                ? "MC OS PRO"
-                : "MC OS Mitglied"}
+                ? "XLXOS PRO"
+                : "XLXOS Mitglied"}
           </p>
         </div>
         <div className="profile-badge">
-          <ShieldCheck size={17} /> {profile.premium ? "MC OS PRO" : "PRIVATE ACCOUNT"}
+          <ShieldCheck size={17} /> {profile.premium ? "XLXOS PRO" : "PRIVATE ACCOUNT"}
         </div>
       </div>
       <div className="profile-details">
@@ -1218,7 +1218,7 @@ function ProfileApp({ profile }: { profile: Profile }) {
           <Sparkles size={16} />
           <span>
             <strong>Profil bearbeiten und Profilbild nutzen</strong>
-            <small>MC OS PRO wird von einem Admin freigeschaltet.</small>
+            <small>XLXOS PRO wird von einem Admin freigeschaltet.</small>
           </span>
         </div>
       )}
@@ -1369,12 +1369,12 @@ function AboutApp() {
     <div className="app-content">
       <AppHeading
         eyebrow="PLATTFORM / ÜBERBLICK"
-        title="Über MC OS"
-        subtitle="Was MC OS ist, wie die Plattform funktioniert und was du hier findest."
+        title="Über XLXOS"
+        subtitle="Was XLXOS ist, wie die Plattform funktioniert und was du hier findest."
       />
       <div className="about-hero">
         <div className="about-emblem">
-          <span>MC</span>
+          <span>XLX</span>
           <i>OS</i>
         </div>
         <div className="about-hero-copy">
@@ -1392,15 +1392,15 @@ function AboutApp() {
       </div>
       <p className="about-copy">
         <strong>
-          MC OS ist eine private, browserbasierte Plattform für Minecraft-Mods, Schematics und
+          XLXOS ist eine private, browserbasierte Plattform für Minecraft-Mods, Schematics und
           Resourcepacks.
         </strong>{" "}
-        Der Windows-inspirierte Desktop ist die Benutzeroberfläche einer Website: MC OS ist weder
+        Der Windows-inspirierte Desktop ist die Benutzeroberfläche einer Website: XLXOS ist weder
         ein echtes Betriebssystem noch ein Minecraft-Launcher und installiert keine Dateien
         automatisch in deinem Spiel. Du lädst veröffentlichte Dateien herunter und installierst sie
         selbst in deiner Minecraft-Umgebung.
       </p>
-      <h3 className="about-section-title">Was du mit MC OS machen kannst</h3>
+      <h3 className="about-section-title">Was du mit XLXOS machen kannst</h3>
       <div className="about-points">
         <div>
           <Blocks size={18} />
@@ -1442,7 +1442,7 @@ function AboutApp() {
         <div>
           <Mail size={18} />
           <span>
-            <strong>McOS-Mail</strong>
+            <strong>XLXOS-Mail</strong>
             <small>Interne Systemnachrichten zu Konto und neuen Veröffentlichungen.</small>
           </span>
         </div>
@@ -1476,7 +1476,7 @@ function AboutApp() {
             <h4>PRO-Inhalte und Freischaltung</h4>
             <p>
               Veröffentlichungen können für alle Mitglieder oder nur für PRO freigegeben sein. PRO
-              wird manuell durch Owner oder Co-Owner erteilt; MC OS bietet derzeit keinen
+              wird manuell durch Owner oder Co-Owner erteilt; XLXOS bietet derzeit keinen
               automatischen Kauf oder Zahlungsprozess.
             </p>
           </div>
@@ -1488,7 +1488,7 @@ function AboutApp() {
           <div>
             <h4>Support und Anrufe</h4>
             <p>
-              Support-Anfragen werden in MC OS von Ownern und Co-Ownern beantwortet. Audio- und
+              Support-Anfragen werden in XLXOS von Ownern und Co-Ownern beantwortet. Audio- und
               Videoanrufe sind für direkte Freundes-Chats verfügbar und öffnen einen externen
               Jitsi-Raum; im Support-Chat gibt es keine Anruffunktion.
             </p>
@@ -1524,11 +1524,11 @@ function AboutApp() {
         </div>
       </section>
       <p className="about-footnote">
-        MC OS ist ein unabhängiges Community-Projekt. Minecraft und die genannten Loader sind Marken
-        ihrer jeweiligen Rechteinhaber; MC OS ist kein offizielles Mojang- oder Microsoft-Produkt.
+        XLXOS ist ein unabhängiges Community-Projekt. Minecraft und die genannten Loader sind Marken
+        ihrer jeweiligen Rechteinhaber; XLXOS ist kein offizielles Mojang- oder Microsoft-Produkt.
       </p>
       <div className="about-version">
-        MC OS <span>·</span> PRIVATE MOD PLATFORM <span>·</span> BROWSER-WORKSPACE
+        XLXOS <span>·</span> PRIVATE MOD PLATFORM <span>·</span> BROWSER-WORKSPACE
       </div>
     </div>
   );
@@ -1720,12 +1720,17 @@ function AdminApp({ profile }: { profile: Profile }) {
             release.published ? "veröffentlicht" : "als Entwurf gespeichert"
           }.${release.warning ? ` ${release.warning}` : ""}`,
         );
-        window.dispatchEvent(new Event("mcos:mods-updated"));
+        window.dispatchEvent(new Event("xlxos:mods-updated"));
         await load();
       } catch (reason) {
         setError(
           `${assetTypeLabel(created.asset_type)} wurde angelegt, aber die Datei konnte nicht gespeichert werden: ${(reason as Error).message} Du kannst sie unten unter „Neue Veröffentlichung“ erneut hochladen.`,
         );
+        requestAnimationFrame(() => {
+          document
+            .getElementById("admin-version-form")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
       }
     } catch (reason) {
       setError((reason as Error).message);
@@ -1838,13 +1843,24 @@ function AdminApp({ profile }: { profile: Profile }) {
           release.published ? "veröffentlicht" : "als Entwurf gespeichert"
         }.${release.warning ? ` ${release.warning}` : ""}`,
       );
-      window.dispatchEvent(new Event("mcos:mods-updated"));
+      window.dispatchEvent(new Event("xlxos:mods-updated"));
       await load();
     } catch (reason) {
       setError((reason as Error).message);
     } finally {
       setBusy(false);
     }
+  }
+  function addVersionForMod(modId: string) {
+    setSelectedMod(modId);
+    setJar(null);
+    const input = document.getElementById("asset-upload") as HTMLInputElement | null;
+    if (input) input.value = "";
+    requestAnimationFrame(() => {
+      document
+        .getElementById("admin-version-form")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
   async function makeInvite() {
     await act(async () => {
@@ -1870,7 +1886,7 @@ function AdminApp({ profile }: { profile: Profile }) {
           const input = document.getElementById(`cover-upload-${modId}`) as HTMLInputElement | null;
           if (input) input.value = "";
         }
-        window.dispatchEvent(new Event("mcos:mods-updated"));
+        window.dispatchEvent(new Event("xlxos:mods-updated"));
         return result;
       }, "Mod-Einstellungen gespeichert.");
     }
@@ -1910,7 +1926,7 @@ function AdminApp({ profile }: { profile: Profile }) {
           method: "PATCH",
           body: JSON.stringify({ id: user.id, premium: !user.premium }),
         }),
-      user.premium ? "MC OS PRO deaktiviert." : "MC OS PRO freigeschaltet.",
+      user.premium ? "XLXOS PRO deaktiviert." : "XLXOS PRO freigeschaltet.",
     );
   }
   async function setUserRole(user: AdminUser, role: "owner" | "co_owner" | "user") {
@@ -1950,7 +1966,7 @@ function AdminApp({ profile }: { profile: Profile }) {
     { id: "invites" as const, title: "Einladungen", icon: Plus },
     { id: "users" as const, title: "Benutzer", icon: Users },
     { id: "support" as const, title: "Support", icon: MessageCircle },
-    { id: "mail" as const, title: "McOS-Mail", icon: Mail },
+    { id: "mail" as const, title: "XLXOS-Mail", icon: Mail },
     { id: "activity" as const, title: "Aktivität", icon: Activity },
   ];
   const currentMod = mods.find((mod) => mod.id === selectedMod);
@@ -1990,7 +2006,7 @@ function AdminApp({ profile }: { profile: Profile }) {
       <div className="admin-main">
         <div className="admin-header">
           <div>
-            <div className="app-eyebrow">MC OS / ADMINISTRATION</div>
+            <div className="app-eyebrow">XLXOS / ADMINISTRATION</div>
             <h2>{tabItems.find((item) => item.id === tab)?.title}</h2>
           </div>
           <button className="admin-refresh" onClick={() => void load()}>
@@ -2187,7 +2203,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                       checked={versionData.premiumOnly}
                       onChange={() => setVersionData({ ...versionData, premiumOnly: true })}
                     />
-                    Nur für MC OS PRO-Mitglieder
+                    Nur für XLXOS PRO-Mitglieder
                   </label>
                 </fieldset>
                 <label className="wide-field jar-picker">
@@ -2236,9 +2252,9 @@ function AdminApp({ profile }: { profile: Profile }) {
                         <strong>{mod.name}</strong>
                         <small>
                           {assetTypeLabel(mod.asset_type)} ·{" "}
-                          {mod.mod_versions.filter((item) => item.published).length} veröffentlicht
-                          · {mod.mod_versions.filter((item) => !item.published).length} Entwurf ·{" "}
-                          {mod.active ? "Aktiv" : "Deaktiviert"}
+                          {mod.mod_versions.length === 0
+                            ? `Noch keine Datei/Version hochgeladen · ${mod.active ? "Aktiv" : "Deaktiviert"}`
+                            : `${mod.mod_versions.filter((item) => item.published).length} veröffentlicht · ${mod.mod_versions.filter((item) => !item.published).length} Entwurf · ${mod.active ? "Aktiv" : "Deaktiviert"}`}
                         </small>
                       </div>
                       <button className="danger-text" onClick={() => void deleteMod(mod)}>
@@ -2270,7 +2286,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                                     published: !release.published,
                                   }),
                                 }).then((result) => {
-                                  window.dispatchEvent(new Event("mcos:mods-updated"));
+                                  window.dispatchEvent(new Event("xlxos:mods-updated"));
                                   return result;
                                 }),
                               release.published
@@ -2383,15 +2399,26 @@ function AdminApp({ profile }: { profile: Profile }) {
                       >
                         Speichern
                       </button>
-                      <button className="plain-admin-button" onClick={() => setSelectedMod(mod.id)}>
-                        Version hinzufügen
+                      <button
+                        className={
+                          mod.mod_versions.length ? "plain-admin-button" : "admin-action-button"
+                        }
+                        onClick={() => addVersionForMod(mod.id)}
+                      >
+                        {mod.mod_versions.length === 0
+                          ? `${assetTypeLabel(mod.asset_type)}-Datei hochladen`
+                          : "Version hinzufügen"}
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            <form className="admin-form admin-version-form" onSubmit={publishVersion}>
+            <form
+              id="admin-version-form"
+              className="admin-form admin-version-form"
+              onSubmit={publishVersion}
+            >
               <div className="admin-form-title">
                 <ArrowDownToLine size={15} />
                 <strong>
@@ -2514,7 +2541,7 @@ function AdminApp({ profile }: { profile: Profile }) {
                       checked={versionData.premiumOnly}
                       onChange={() => setVersionData({ ...versionData, premiumOnly: true })}
                     />
-                    Nur für MC OS PRO-Mitglieder
+                    Nur für XLXOS PRO-Mitglieder
                   </label>
                 </fieldset>
                 <label className="wide-field jar-picker">

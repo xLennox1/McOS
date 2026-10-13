@@ -1,4 +1,4 @@
-name: MC OS CI
+name: XLXOS CI
 
 on:
   push:

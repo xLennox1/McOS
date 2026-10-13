@@ -428,11 +428,15 @@ export async function POST(request: Request) {
     const { data, error } = await admin.storage
       .from("mod-files")
       .createSignedUploadUrl(filePath, { upsert: false });
-    if (error || !data?.token)
+    if (error || !data?.token) {
+      console.error("Failed to create a signed asset upload URL.", error);
       return NextResponse.json(
-        { error: "Sicherer Upload-Link konnte nicht erstellt werden." },
+        {
+          error: `Supabase konnte den sicheren Datei-Upload-Link nicht erstellen${error?.message ? `: ${error.message}` : "."}`,
+        },
         { status: 500 },
       );
+    }
     return NextResponse.json({ path: filePath, token: data.token });
   }
 

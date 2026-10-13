@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
-  const setupSecret = process.env.MCOS_SETUP_SECRET;
+  const setupSecret = process.env.XLXOS_SETUP_SECRET;
   if (!setupSecret || setupSecret.length < 24) {
     return NextResponse.json(
       { error: "Die Admin-Ersteinrichtung ist nicht aktiviert." },

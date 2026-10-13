@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     recipients.map((recipient) => ({
       recipient_id: recipient.id,
       sender_id: actor.id,
-      sender_name: "MC OS Administration",
+      sender_name: "XLXOS Administration",
       subject,
       body: message,
     })),

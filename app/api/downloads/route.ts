@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (version.premium_only && !isStaffRole(access?.role ?? "") && access?.premium !== true)
     return NextResponse.json(
-      { error: "Diese Version ist exklusiv für MC OS PRO." },
+      { error: "Diese Version ist exklusiv für XLXOS PRO." },
       { status: 403 },
     );
   const { data: signed, error: signedError } = await admin.storage

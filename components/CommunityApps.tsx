@@ -241,7 +241,7 @@ export function ChatApp({
     (activeSupport
       ? `${activeSupport.profile.username} · Support`
       : currentSupport
-        ? "MC OS Support"
+        ? "XLXOS Support"
         : "Wähle einen Chat");
   const canCall = !supportOnly && Boolean(activeFriend);
   async function copyUserId() {
@@ -328,7 +328,7 @@ export function ChatApp({
               <ProfileAvatar profile={friend.profile} />
               <span>
                 <strong>{friend.profile.username}</strong>
-                <small>{friend.profile.premium ? "PRO-Mitglied" : "MC OS Mitglied"}</small>
+                <small>{friend.profile.premium ? "PRO-Mitglied" : "XLXOS Mitglied"}</small>
               </span>
             </button>
           ))}
@@ -350,7 +350,7 @@ export function ChatApp({
             <MessageCircle size={15} />
           </span>
           <span>
-            <strong>MC OS Support</strong>
+            <strong>XLXOS Support</strong>
             <small>Vertraulich mit Admins</small>
           </span>
         </button>
@@ -489,7 +489,7 @@ function ChatPane({
   supportOnly: boolean;
 }) {
   function openCall(video: boolean) {
-    const room = `MCOS-${selected.replace(/[^a-zA-Z0-9]/g, "")}`;
+    const room = `XLXOS-${selected.replace(/[^a-zA-Z0-9]/g, "")}`;
     const startMuted = video ? "false" : "true";
     window.open(
       `https://meet.jit.si/${room}#config.startWithVideoMuted=${startMuted}&config.startWithAudioMuted=false`,
@@ -674,7 +674,7 @@ export function MailApp({ profile }: { profile: Profile }) {
       <header className="community-heading">
         <div>
           <span className="app-eyebrow">INTERNES POSTFACH</span>
-          <h2>McOS-Mail</h2>
+          <h2>XLXOS-Mail</h2>
         </div>
         <span className="subtle-count">
           {messages.filter((item) => !item.read_at).length} UNGELESEN
@@ -721,7 +721,7 @@ export function MailApp({ profile }: { profile: Profile }) {
           ) : (
             <div className="chat-empty-panel">
               <Mail size={27} />
-              <strong>McOS-Mail</strong>
+              <strong>XLXOS-Mail</strong>
               <span>Wähle links eine Nachricht aus.</span>
             </div>
           )}
@@ -764,7 +764,7 @@ export function AdminBroadcastApp() {
         <div>
           <h3>Systemnachricht verfassen</h3>
           <p>
-            Die Nachricht erscheint im internen McOS-Mail-Postfach aller aktiven Mitglieder. Es
+            Die Nachricht erscheint im internen XLXOS-Mail-Postfach aller aktiven Mitglieder. Es
             werden keine externen E-Mails versendet.
           </p>
         </div>

@@ -51,7 +51,7 @@ function ResetPasswordForm() {
             <i>OS</i>
           </div>
           <div>
-            <strong>MC OS</strong>
+            <strong>XLXOS</strong>
             <small>MINECRAFT MOD PLATFORM</small>
           </div>
         </div>

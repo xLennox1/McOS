@@ -13,7 +13,7 @@ function Brand() {
         <i>OS</i>
       </div>
       <div>
-        <strong>MC OS</strong>
+        <strong>XLXOS</strong>
         <small>MINECRAFT MOD PLATFORM</small>
       </div>
     </div>
@@ -85,7 +85,7 @@ export function LoginForm() {
       <div className="auth-heading">
         <span className="eyebrow">WILLKOMMEN ZURÜCK</span>
         <h1>Dein Desktop wartet.</h1>
-        <p>Melde dich mit deinem MC-OS-Konto an.</p>
+        <p>Melde dich mit deinem XLXOS-Konto an.</p>
       </div>
       <form className="auth-form" onSubmit={signIn}>
         <label>

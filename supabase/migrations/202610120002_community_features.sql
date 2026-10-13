@@ -67,7 +67,7 @@ create table public.mailbox_messages (
   id uuid primary key default gen_random_uuid(),
   recipient_id uuid not null references public.profiles(id) on delete cascade,
   sender_id uuid references public.profiles(id) on delete set null,
-  sender_name text not null default 'MC OS',
+  sender_name text not null default 'XLXOS',
   subject text not null check (length(subject) between 1 and 160),
   body text not null check (length(body) between 1 and 5000),
   created_at timestamptz not null default now(),
@@ -208,8 +208,8 @@ begin
     insert into public.mailbox_messages (recipient_id, sender_name, subject, body)
     values (
       new.id,
-      'MC OS',
-      'Willkommen bei MC OS',
+      'XLXOS',
+      'Willkommen bei XLXOS',
       'Dein Zugang ist eingerichtet. Entdecke die Mod-Bibliothek, richte deinen Desktop ein und finde andere Mitglieder über ihre Benutzer-ID.'
     );
   end if;
@@ -284,7 +284,7 @@ begin
   insert into public.mailbox_messages (recipient_id, sender_name, subject, body)
   select
     profiles.id,
-    'MC OS',
+    'XLXOS',
     left('Neue Mod-Version: ' || mod_name, 160),
     left(
       'Die Version ' || p_version || ' für Minecraft ' || p_minecraft_version
